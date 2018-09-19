@@ -1,7 +1,7 @@
 import numpy as np
 import os
 
-os.chdir("/home/burt/Documents/scripts/th_cell_differentiation")
+os.chdir("/home/burt/Documents/code/th_cell_differentiation")
 
 ### run_model takes default parameters stored in th1_th2_parameters.py
 from th1_th2_ode_model_generic import run_model, chain
@@ -30,8 +30,8 @@ state = test_simulation["state"]
 parameters = test_simulation["parameters"]
 
 # plot time course
-plot_time_course(th1_th2_model, parameters, save = "time_course_conc_model_il12_1")
+plot_time_course(th1_th2_model, parameters)
 
 chain_length = 25.
 
-plot_chain(chain(chain_length, conceptual_params, stepsize = cparams.stepsize))
+#plot_chain(chain(chain_length, conceptual_params, stepsize = cparams.stepsize))

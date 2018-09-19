@@ -16,12 +16,13 @@ def find_nearest(array, value):
     idx = (np.abs(array - value)).argmin()
     return idx
 
-def p_th_diff(conc_ifn,conc_il4,conc_il12, hill, half_saturation):
+def p_th_diff(conc_ifn,conc_il4,conc_il12, hill, half_saturation, strength = 1):
     """
     returns probability of Th1 Th2 differentiation for given cytokine concentrations
     kinetics are hill-like so hill coefficients for cytokines also need to be provided
     """
-    prob_th_diff = (((conc_ifn/half_saturation[0])**hill[0])*
+    prob_th_diff = (strength*
+                    ((conc_ifn/half_saturation[0])**hill[0])*
                     ((conc_il4/half_saturation[1])**hill[1])*
                     ((conc_il12/half_saturation[2])**hill[2]))
     return prob_th_diff
@@ -90,7 +91,7 @@ def run_model(title, parameters, model_name = th_cell_diff, save = True):
     alpha_1, alpha_2, rate1, rate2, simulation_time, conc_il12, hill_1, hill_2, rate_ifn, rate_il4, half_saturation, initial_cells = parameters
     # define initial conditions based on number of intermediary states
     no_of_states = int(alpha_1+alpha_2+1)
-    ini_cond = np.ones(no_of_states)
+    ini_cond = np.ones(no_of_states)*initial_cells/1000
     ini_cond[0] = initial_cells
     
     state = odeint(model_name,

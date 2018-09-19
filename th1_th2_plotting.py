@@ -26,7 +26,6 @@ def plot_time_course(th1_th2_model, parameters, save = "no", title = True, title
     
     alpha_1, alpha_2, rate1, rate2, simulation_time, conc_il12, hill_1, hill_2, rate_ifn, rate_il4, half_saturation, initial_cells = parameters
     norm = initial_cells/100
-    
     th0_cells = th1_th2_model[:,0]/norm
     th1_cells = th1_th2_model[:,int(alpha_1)]/norm
     th2_cells = th1_th2_model[:,-1]/norm

@@ -9,7 +9,7 @@ plt chain effects
 import numpy as np
 import os
 
-os.chdir("/home/burt/Documents/scripts/th_cell_differentiation")
+os.chdir("/home/burt/Documents/code/th_cell_differentiation")
 
 ### run_model takes default parameters stored in th1_th2_parameters.py
 from th1_th2_ode_model_generic import chain, il12
@@ -28,6 +28,7 @@ chain_length = 25
 #==============================================================================
 # IL12 effect
 #==============================================================================
+"""
 mean_diff = [0.8,0.9,1.0,1.1,1.2]
 mean_diff_params = list(conceptual_params)
 
@@ -44,7 +45,7 @@ plt.tight_layout()
 #fig.savefig(save_path+"mean_diff_tau_il12_1.svg", bbox_inches = "tight", dpi = 1200)
 
 
-"""
+
 il12_concentrations = np.linspace(0,2,100)
 il12_params = list(conceptual_params)
 plot_il12(il12(il12_concentrations, il12_params), factor_x_axis = 1, xlabel = "IL12 [a.u.]", save = "il12_conc_model_mean_diff_1")
@@ -108,7 +109,7 @@ axes[0].set_ylabel("% Th cells after 100 hrs")
 axes[2].set_xlabel(r"chain length $\alpha$")
 plt.tight_layout()
 #fig.savefig(save_path+"mean_diff_chain_length_il12_1.svg", bbox_inches = "tight", dpi = 1200)
-
+"""
 il_12 = [0.5,0.75,1.0,1.25,1.5]
 il_12_params = list(conceptual_params)
 
@@ -123,7 +124,7 @@ axes[0].set_ylabel("% Th cells after 100 hrs")
 axes[2].set_xlabel(r"chain length $\alpha$")
 plt.tight_layout()
 #fig.savefig(save_path+"il12_chain_length_mean_diff_1.svg", bbox_inches = "tight", dpi = 1200)
-
+"""
 
 il_12 = [0.2,0.3,0.4,0.5,0.7]
 il_12_params = list(conceptual_params)
