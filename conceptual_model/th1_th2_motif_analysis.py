@@ -8,14 +8,17 @@ very basic model T can convert to T1 or T2 and I change the feedback
 """
 import os
 
-os.chdir("/home/burt/Documents/code/th_cell_differentiation")
+windows_path= "C:/Users/Philipp/Documents/tcells/"
+linux_path= "/home/burt/Documents/code/th_cell_differentiation"
+os.chdir(windows_path)
 
 ### run_model takes default parameters stored in th1_th2_parameters.py
-from th1_th2_ode_model_generic import chain, il12, run_model
-from th1_th2_plotting import plot_chain, subplot_chain, subplot_tau, plot_il12,plot_time_course
+from modules.th1_th2_ode_model_generic import chain, il12, run_model
+from modules.th1_th2_plotting import plot_chain, subplot_chain, subplot_tau, plot_il12,plot_time_course
 import matplotlib.pyplot as plt
 import numpy as np
-import th1_th2_conceptual_parameters as cparams
+import modules.th1_th2_conceptual_parameters as cparams
+
 save_path = "/home/burt/Documents/figures/"
 
 #==============================================================================
