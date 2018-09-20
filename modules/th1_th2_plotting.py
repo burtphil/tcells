@@ -24,7 +24,7 @@ save_path = "/home/burt/Documents/figures/"
 
 def plot_time_course(th1_th2_model, parameters, save = "no", title = True, title_name = ""):
     
-    alpha_1, alpha_2, rate1, rate2, simulation_time, conc_il12, hill_1, hill_2, rate_ifn, rate_il4, half_saturation, initial_cells = parameters
+    alpha_1, alpha_2, rate1, rate2, simulation_time, conc_il12, hill_1, hill_2, rate_ifn, rate_il4, half_saturation,base_production_rate_ifn, base_production_rate_il4, initial_cells = parameters
     norm = initial_cells/100
     th0_cells = th1_th2_model[:,0]/norm
     th1_cells = th1_th2_model[:,int(alpha_1)]/norm
@@ -49,7 +49,24 @@ def plot_time_course(th1_th2_model, parameters, save = "no", title = True, title
     if save != "no":
         fig.savefig(save_path+save+".svg",bbox_inches="tight", dpi=1200)
         
-
+def ax_time_course(state, ax, parameters, linestyle = "-"):
+    
+    alpha_1, alpha_2, rate1, rate2, simulation_time, conc_il12, hill_1, hill_2, rate_ifn, rate_il4, half_saturation,base_production_rate_ifn, base_production_rate_il4, initial_cells = parameters
+    norm = initial_cells/100
+    th0_cells = state[:,0]/norm
+    th1_cells = state[:,int(alpha_1)]/norm
+    th2_cells = state[:,-1]/norm
+    
+    ax.plot(simulation_time, th0_cells, color = "k", linestyle = linestyle)
+    ax.plot(simulation_time, th1_cells, color = "tab:blue", linestyle = linestyle)
+    ax.plot(simulation_time, th2_cells, color = "tab:red", linestyle = linestyle)
+    ax.set_yticks([0,50,100])
+    ax.set_ylim([0,100])
+    ax.set_xlim([simulation_time[0],simulation_time[-1]])
+    ax.set_xlabel("Time [h]")
+    ax.set_ylabel("% Th cells")
+    
+       
 def plot_chain(chain_array, save = "no"):
     chain = chain_array[0]
     th1_conc = chain_array[1]
@@ -79,7 +96,7 @@ def plot_chain(chain_array, save = "no"):
     if save != "no":
         fig.savefig(save_path+save+".svg", bbox_inches = "tight", dpi = 1200)
 
-def subplot_chain(chain_array, ax, labels = "on"):
+def ax_chain(chain_array, ax, labels = "on"):
     chain = chain_array[0]
     th1_conc = chain_array[1]
     th2_conc = chain_array[2]
@@ -89,11 +106,13 @@ def subplot_chain(chain_array, ax, labels = "on"):
     
     ax.scatter(chain, th1_conc, c= "tab:blue")
     ax.scatter(chain, th2_conc, c= "tab:red")
-    #ax.set_xlabel(r"chain length $\alpha$")
-    #ax.set_ylabel("% Th cells after 100 hrs")
+    #
+    #
     ax.set_ylim([0,100])
     ax.set_xlim([0, chain_length])
     if labels == "on":
+        ax.set_xlabel(r"chain length $\alpha$")
+        ax.set_ylabel("% Th cells after 100 hrs")
         ax.set_yticks([0,50,100])
     else:
         ax.set_yticks([])
@@ -136,3 +155,23 @@ def plot_il12(il12_array, xlabel = "IL-12 [pm]", factor_x_axis = 10**12, save = 
     
     if save != "no":
         fig.savefig(save_path+save+".svg", bbox_inches = "tight", dpi = 1200)
+
+def ax_il12(il12_array, ax, xlabel = "IL-12 [a.u.]", factor_x_axis = 1.):
+    """
+    return axes object for il12 dependency
+    """
+    il12_conc = il12_array[0]
+    il12_conc_pm = il12_conc*factor_x_axis
+    th1_conc = il12_array[1]
+    th2_conc = il12_array[2]
+    
+    ax.plot(il12_conc_pm, th1_conc, "tab:blue")
+    ax.plot(il12_conc_pm, th2_conc, "tab:red")
+    ax.set_xlabel(xlabel)
+    ax.set_yticks([0,50,100])
+    #ax.set_title("Effect of IL-12 conc. on Th cell balance after 3 hours")
+    ax.set_ylim([0,100])
+    ax.set_xlim([il12_conc_pm[0],il12_conc_pm[-1]])
+    
+    ax.set_ylabel("% Th cells")
+    

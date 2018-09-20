@@ -22,7 +22,7 @@ k_th2_il12 = 0
 hill_2 = [k_th2_ifn, k_th2_il4, k_th2_il12]
 
 # extracellular il12 concentration
-conc_il12 = 1.
+conc_il12 = 1.0
 
 #production rates cytokines
 rate_ifn = 1.
@@ -35,8 +35,10 @@ kd_il12 = 1.
 
 half_saturation = [kd_ifn, kd_il4, kd_il12]
 
+base_production_rate_il4 = 0.
+base_production_rate_ifn = 0.1
 ### at some point I need to change this to cell densities
-initial_cells = 1.
+initial_cells = 10.
 
 #
 mean_th1 = 1.
@@ -53,4 +55,6 @@ stop = 6
 stepsize = .01
 simulation_time = np.arange(start, stop, stepsize)
 
-parameters = [alpha_th1, alpha_th2, beta_th1, beta_th2, simulation_time, conc_il12, hill_1, hill_2, rate_ifn, rate_il4, half_saturation, initial_cells]
+parameters = [alpha_th1, alpha_th2, beta_th1, beta_th2, simulation_time,
+              conc_il12, hill_1, hill_2, rate_ifn, rate_il4, half_saturation,
+              base_production_rate_ifn, base_production_rate_il4, initial_cells]

@@ -16,7 +16,7 @@ def find_nearest(array, value):
     idx = (np.abs(array - value)).argmin()
     return idx
 
-def p_th_diff(conc_ifn,conc_il4,conc_il12, hill, half_saturation, strength = 1):
+def p_th_diff(conc_ifn,conc_il4,conc_il12, hill, half_saturation, base_production_rate, strength = 1):
     """
     returns probability of Th1 Th2 differentiation for given cytokine concentrations
     kinetics are hill-like so hill coefficients for cytokines also need to be provided
@@ -24,11 +24,12 @@ def p_th_diff(conc_ifn,conc_il4,conc_il12, hill, half_saturation, strength = 1):
     prob_th_diff = (strength*
                     ((conc_ifn/half_saturation[0])**hill[0])*
                     ((conc_il4/half_saturation[1])**hill[1])*
-                    ((conc_il12/half_saturation[2])**hill[2]))
+                    ((conc_il12/half_saturation[2])**hill[2])+
+                    base_production_rate)
     return prob_th_diff
 
 def th_cell_diff(state, t,alpha_1,alpha_2,rate1,rate2,conc_il12, hill_1, hill_2, 
-                 rate_ifn, rate_il4, half_saturation):
+                 rate_ifn, rate_il4, half_saturation, base_production_rate_ifn, base_production_rate_il4):
         
     # calculate interferon gamma (ifn) and il4 concentrations based on the number of th1 and th2 cells
     conc_ifn = rate_ifn*state[int(alpha_1)]
@@ -39,8 +40,8 @@ def th_cell_diff(state, t,alpha_1,alpha_2,rate1,rate2,conc_il12, hill_1, hill_2,
     th_0 = state[0]
      
     # branching probablities
-    prob_th1 = p_th_diff(conc_ifn,conc_il4,conc_il12, hill_1, half_saturation)
-    prob_th2 = p_th_diff(conc_ifn,conc_il4,conc_il12, hill_2, half_saturation)
+    prob_th1 = p_th_diff(conc_ifn,conc_il4,conc_il12, hill_1, half_saturation, base_production_rate_ifn)
+    prob_th2 = p_th_diff(conc_ifn,conc_il4,conc_il12, hill_2, half_saturation, base_production_rate_il4)
         
     # normalized branching probabilities
     prob_th1_norm = prob_th1 / (prob_th1+prob_th2)
@@ -88,16 +89,16 @@ def run_model(title, parameters, model_name = th_cell_diff, save = True):
     run ode model with parameters from params file
     needs shape and rate params as input as well as simulation time
     """
-    alpha_1, alpha_2, rate1, rate2, simulation_time, conc_il12, hill_1, hill_2, rate_ifn, rate_il4, half_saturation, initial_cells = parameters
+    alpha_1, alpha_2, rate1, rate2, simulation_time, conc_il12, hill_1, hill_2, rate_ifn, rate_il4, half_saturation, base_production_rate_ifn, base_production_rate_il4, initial_cells = parameters
     # define initial conditions based on number of intermediary states
     no_of_states = int(alpha_1+alpha_2+1)
-    ini_cond = np.ones(no_of_states)*initial_cells/1000
+    ini_cond = np.zeros(no_of_states)
     ini_cond[0] = initial_cells
     
-    state = odeint(model_name,
-                   ini_cond,
-                   simulation_time, 
-                   args =(alpha_1,alpha_2,rate1,rate2,conc_il12, hill_1,hill_2,rate_ifn,rate_il4,half_saturation,))
+    state = odeint(model_name, ini_cond, simulation_time, 
+                   args =(alpha_1,alpha_2,rate1,rate2,conc_il12, hill_1,hill_2,
+                          rate_ifn,rate_il4,half_saturation, base_production_rate_ifn,
+                          base_production_rate_il4))
     
     # save both model simulation and associated parameters
     if save == True:
@@ -146,9 +147,70 @@ def chain(chain_length, parameters, stepsize = 0.01):
         th1_tau.append(th1_tau_idx)
         th2_tau.append(th2_tau_idx)    
         # normalize to initial cell pop
+    
+    norm = parameters[-1]/100
+    th1_conc = np.array(th1_conc)/norm
+    th2_conc = np.array(th2_conc)/norm
+    
+    return [chain, th1_conc, th2_conc, th1_tau, th2_tau, chain_length]
+
+def chain_one(chain_length, parameters, alpha_idx, stepsize = 0.01):
+    """
+    plot steady state and tau 1/2 dependency on chain length
+    watch out for the step size
+    alpha_idx takes a tuple, the first index specifies which alpha is varied
+    set to 0 for th1 alpha variation and to 1 for th2 alpha variation
+    the second index sets the respective other alpha to the index value
+    this needs to be an integer
+    """
+    parameters = list(parameters)
+    chain = np.arange(1,chain_length,1)
+    
+    mean_th1 = parameters[0]/parameters[2]
+    mean_th2 = parameters[1]/parameters[3]
+    
+    th1_conc = []
+    th2_conc = []
+    
+    th1_tau = []
+    th2_tau = []
+    
+    for i in chain:
         
-    th1_conc = np.array(th1_conc)/100
-    th2_conc = np.array(th2_conc)/100
+        if alpha_idx[0] == 0:            
+            parameters[0] = i
+            parameters[2] = i/mean_th1
+            parameters[1] = alpha_idx[1]
+            parameters[3] = alpha_idx[1]/mean_th2
+
+        elif alpha_idx[0] == 1:
+            parameters[0] = alpha_idx[1]
+            parameters[2] = alpha_idx[1]/mean_th1                        
+            parameters[1] = i
+            parameters[3] = i/mean_th2
+        
+        state = run_model("", parameters, save = False)
+        #plot_time_course(state, alpha_1, alpha_2, simulation_time)
+    
+        # get end states
+        th1_endstate = state[-1,int(i)]
+        th1_conc.append(th1_endstate)
+        
+        th2_endstate = state[-1,-1]
+        th2_conc.append(th2_endstate)
+        
+        th1_halfmax = th1_endstate/2
+        th2_halfmax = th2_endstate/2
+        
+        th1_tau_idx = find_nearest(state[:,int(i)], th1_halfmax)*stepsize
+        th2_tau_idx = find_nearest(state[:,-1], th2_halfmax)*stepsize
+        th1_tau.append(th1_tau_idx)
+        th2_tau.append(th2_tau_idx)    
+        # normalize to initial cell pop
+    
+    norm = parameters[-1]/100
+    th1_conc = np.array(th1_conc)/norm
+    th2_conc = np.array(th2_conc)/norm
     
     return [chain, th1_conc, th2_conc, th1_tau, th2_tau, chain_length]
 
