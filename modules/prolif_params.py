@@ -7,13 +7,13 @@ Created on Wed Sep 12 16:51:52 2018
 """
 import numpy as np
 ### set up params (roughly Hammer et al params)
-initial_cells = 1.
+initial_cells = 0.
 death_rate = 1./24
 division_time = 10.
 non_dividing_cells = 0.05/np.exp(-death_rate*(6*24))
 
 start = 0
-stop = 200
+stop = 250
 stepsize = 0.01
 simulation_time = np.arange(start, stop, stepsize)
 

@@ -13,8 +13,8 @@ from scipy.integrate import odeint
 import matplotlib.pyplot as plt
 
 windows_path= "C:/Users/Philipp/Documents/tcells/modules"
-linux_path = "home/burt/documents/"
-os.chdir(windows_path)
+linux_path = "/home/burt/Documents/code/th_cell_differentiation/modules"
+os.chdir(linux_path)
 import prolif_params as param
 
 def gamma_dist(t, alpha, beta, factor = 1):

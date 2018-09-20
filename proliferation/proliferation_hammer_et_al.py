@@ -14,9 +14,10 @@ from scipy.integrate import odeint
 import matplotlib.pyplot as plt
 import os
 windows_path= "C:/Users/Philipp/Documents/tcells/modules"
-linux_path = "home/burt/documents/"
-os.chdir(windows_path)
+linux_path = "/home/burt/Documents/code/th_cell_differentiation/modules"
+os.chdir(linux_path)
 import prolif_params as param
+from scipy.interpolate import interp1d
 
 def gamma_dist(t, alpha, beta):
     return np.exp(-beta*t)*(beta**alpha)*(t**(alpha-1))/gamma(alpha)
@@ -25,49 +26,57 @@ def gamma_cdf(t, alpha, beta):
     dummy = t*beta
     return gammainc(alpha,dummy)
 
-def N_0(t, non_dividing_cells,death_rate, alpha, beta):
+def N_0(t, non_dividing_cells, d, alpha, beta):
     """
     analytical function N_0(t) for cell numbers that have undergone 0 divisions
     """
-    cell0 = (1-gamma_cdf(t, alpha, beta))+non_dividing_cells*np.exp(-death_rate*t)
+    cell0 = (1-gamma_cdf(t, alpha, beta))+non_dividing_cells*np.exp(-d*t)
     return cell0
 
-def N_i(t,state_idx, alpha, beta, death_rate, division_time, n_1):
+def N_i(t,i, d, div_t, n_1):
     """
     analytical function N_i(t) for cell numbers that have undergone i divisions
     depends on number of cells that have undergone 1 division (n_1)
     """
-    n1_indices =(t-(state_idx-1)*division_time)*100
-    n1_indices = n1_indices.astype(int)
-    
-    return ((2*np.exp(-death_rate*division_time))**(state_idx-1)*n_1[n1_indices])
+    return ((2*np.exp(-d*div_t))**(i-1))*n_1(t-(i-1)*div_t)
  
-def dN_1_dt(cell_numbers, t, alpha, beta, division_time, death_rate):
+def dN_1_dt(cell_numbers, t, alpha, beta, div_t, d):
     """
     ODE for number of cells that made 1 division
     note that the 2* is not the same in de Boer et al (2006)
     """
     dn1_dt = (2*gamma_dist(t, alpha, beta)-
-              gamma_dist(t-division_time, alpha, beta)*
-               np.exp(-death_rate*division_time)-
-               death_rate*cell_numbers)
+              gamma_dist(t-div_t, alpha, beta)*
+               np.exp(-d*div_t)-
+               d*cell_numbers)
     return dn1_dt
 
 
+simulation_time_n1 = np.arange(0,250,0.01)
+state = odeint(dN_1_dt, param.initial_cells, simulation_time_n1,
+               args = (param.alpha,param.beta, param.div_t, param.d))
+
+n_1 = interp1d(simulation_time_n1, state, axis = 0, kind='cubic', fill_value = 0, bounds_error = False)
+
+#plt.plot(simulation_time_n1, n_1(simulation_time_n1))
 ### calculate cells in N1 generation through integration
-simulation_time_n1 = np.arange(0,600,0.01)
-state = odeint(dN_1_dt, param.initial_cells, simulation_time_n1, args = (param.alpha,
-                                                      param.beta,
-                                                      param.div_t, param.d))
 
 ###
-fig, ax = plt.subplots(3,3, figsize = (12,12))
-ax = ax.flatten()
-for i in range(9):
+
+
+fig, ax = plt.subplots(1,1, figsize = (5,3.5))
+
+for i in range(7):
     
-    n_i = N_i(t=param.simulation_time, state_idx = i, alpha = param.alpha,
-          beta = param.beta, death_rate= param.d, division_time = param.div_t,
-          n_1 = state)
-    ax[i].plot(param.simulation_time, n_i, "k", label = str(i)+ ". Division")
-    ax[i].legend()
+    if i == 0:
+        ax.plot(param.simulation_time, n_1(param.simulation_time), label = "1. Division")
+    else:
+        n_i = N_i(t=param.simulation_time, i = i, d= param.d, div_t = param.div_t,
+              n_1 = n_1)
+        ax.plot(param.simulation_time, n_i, label = str(i+1)+ ". Division")
+        ax.legend()
+    ax.set_xlabel("time (h)")
+    ax.set_ylabel("cells")
+
 plt.tight_layout()
+
