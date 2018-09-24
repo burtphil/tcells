@@ -57,6 +57,7 @@ def ax_time_course(state, ax, parameters, linestyle = "-"):
     th1_cells = state[:,int(alpha_1)]/norm
     th2_cells = state[:,-1]/norm
     
+    #print th1_cells[-1],th2_cells[-1]
     ax.plot(simulation_time, th0_cells, color = "k", linestyle = linestyle)
     ax.plot(simulation_time, th1_cells, color = "tab:blue", linestyle = linestyle)
     ax.plot(simulation_time, th2_cells, color = "tab:red", linestyle = linestyle)

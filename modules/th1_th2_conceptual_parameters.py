@@ -35,10 +35,10 @@ kd_il12 = 1.
 
 half_saturation = [kd_ifn, kd_il4, kd_il12]
 
-base_production_rate_il4 = 0.
+base_production_rate_il4 = 0.1
 base_production_rate_ifn = 0.1
 ### at some point I need to change this to cell densities
-initial_cells = 10.
+initial_cells = 1000.
 
 #
 mean_th1 = 1.
@@ -51,7 +51,8 @@ beta_th2 = alpha_th2/mean_th2
 # simulation time
 
 start = 0
-stop = 6
+stop = 5
+# watch out, method chain also takes stepsize as independent argument
 stepsize = .01
 simulation_time = np.arange(start, stop, stepsize)
 

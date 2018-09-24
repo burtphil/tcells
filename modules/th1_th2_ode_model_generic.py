@@ -7,6 +7,7 @@ Created on Thu Sep  6 13:11:32 2018
 """
 import numpy as np#
 from scipy.integrate import odeint
+import matplotlib.pyplot as plt
 
 def find_nearest(array, value):
     """
@@ -16,11 +17,12 @@ def find_nearest(array, value):
     idx = (np.abs(array - value)).argmin()
     return idx
 
-def p_th_diff(conc_ifn,conc_il4,conc_il12, hill, half_saturation, base_production_rate, strength = 1):
+def p_th_diff(conc_ifn,conc_il4,conc_il12, hill, half_saturation, base_production_rate, strength = 1.):
     """
     returns probability of Th1 Th2 differentiation for given cytokine concentrations
     kinetics are hill-like so hill coefficients for cytokines also need to be provided
     """
+
     prob_th_diff = (strength*
                     ((conc_ifn/half_saturation[0])**hill[0])*
                     ((conc_il4/half_saturation[1])**hill[1])*
@@ -32,8 +34,10 @@ def th_cell_diff(state, t,alpha_1,alpha_2,rate1,rate2,conc_il12, hill_1, hill_2,
                  rate_ifn, rate_il4, half_saturation, base_production_rate_ifn, base_production_rate_il4):
         
     # calculate interferon gamma (ifn) and il4 concentrations based on the number of th1 and th2 cells
+    
     conc_ifn = rate_ifn*state[int(alpha_1)]
     conc_il4 = rate_il4*state[-1]
+    #print state[-1]
 
     ### calculate initial th1 and th2 populations from naive cells based on branching probabilities
     # naive cells
@@ -45,6 +49,7 @@ def th_cell_diff(state, t,alpha_1,alpha_2,rate1,rate2,conc_il12, hill_1, hill_2,
         
     # normalized branching probabilities
     prob_th1_norm = prob_th1 / (prob_th1+prob_th2)
+    #print prob_th1_norm
     prob_th2_norm = prob_th2 / (prob_th1+prob_th2)
     th1_0 = prob_th1_norm*th_0
     th2_0 = prob_th2_norm*th_0
@@ -203,6 +208,102 @@ def chain_one(chain_length, parameters, alpha_idx, stepsize = 0.01):
         th2_halfmax = th2_endstate/2
         
         th1_tau_idx = find_nearest(state[:,int(i)], th1_halfmax)*stepsize
+        th2_tau_idx = find_nearest(state[:,-1], th2_halfmax)*stepsize
+        th1_tau.append(th1_tau_idx)
+        th2_tau.append(th2_tau_idx)    
+        # normalize to initial cell pop
+    
+    norm = parameters[-1]/100
+    th1_conc = np.array(th1_conc)/norm
+    th2_conc = np.array(th2_conc)/norm
+    
+    return [chain, th1_conc, th2_conc, th1_tau, th2_tau, chain_length]
+
+def chain_th1(chain_length, parameters, stepsize = 0.01):
+    """
+    plot steady state and tau 1/2 dependency on chain length
+    watch out for the step size
+    alpha_idx takes a tuple, the first index specifies which alpha is varied
+    set to 0 for th1 alpha variation and to 1 for th2 alpha variation
+    the second index sets the respective other alpha to the index value
+    this needs to be an integer
+    """
+    parameters = list(parameters)
+    chain = np.arange(1,chain_length,1)
+    
+    mean_th1 = parameters[0]/parameters[2]
+    
+    th1_conc = []
+    th2_conc = []
+    
+    th1_tau = []
+    th2_tau = []
+    
+    for i in chain:
+        
+        parameters[0] = i
+        parameters[2] = i/mean_th1
+        #print parameters[1],parameters[3]
+        state = run_model("", parameters, save = False)
+        #fig, ax = plt.subplots(1,1, figsize = (5,5))
+        #ax.plot(parameters[4],state)
+        #ax.set_title(str(parameters[0])+", "+str(parameters[1]))
+        #plot_time_course(state, alpha_1, alpha_2, simulation_time)
+        
+        # get end states
+        th1_endstate = state[-1,int(i)]
+        th1_conc.append(th1_endstate)
+
+        th2_endstate = state[-1,-1]
+        th2_conc.append(th2_endstate)
+        
+        #print th1_endstate, th2_endstate
+            
+    norm = parameters[-1]/100
+    th1_conc = np.array(th1_conc)/norm
+    th2_conc = np.array(th2_conc)/norm
+    
+    return [chain, th1_conc, th2_conc, th1_tau, th2_tau, chain_length]
+
+def chain_th2(chain_length, parameters, stepsize = 0.01):
+    """
+    plot steady state and tau 1/2 dependency on chain length
+    watch out for the step size
+    alpha_idx takes a tuple, the first index specifies which alpha is varied
+    set to 0 for th1 alpha variation and to 1 for th2 alpha variation
+    the second index sets the respective other alpha to the index value
+    this needs to be an integer
+    """
+    parameters = list(parameters)
+    chain = np.arange(1,chain_length,1)
+    
+    mean_th2 = parameters[1]/parameters[3]
+    
+    th1_conc = []
+    th2_conc = []
+    
+    th1_tau = []
+    th2_tau = []
+    
+    for i in chain:
+        
+        parameters[1] = i
+        parameters[3] = i/mean_th2
+        
+        state = run_model("", parameters, save = False)
+        #plot_time_course(state, alpha_1, alpha_2, simulation_time)
+    
+        # get end states
+        th1_endstate = state[-1,parameters[0]]
+        th1_conc.append(th1_endstate)
+        
+        th2_endstate = state[-1,-1]
+        th2_conc.append(th2_endstate)
+        
+        th1_halfmax = th1_endstate/2
+        th2_halfmax = th2_endstate/2
+        
+        th1_tau_idx = find_nearest(state[:,parameters[0]], th1_halfmax)*stepsize
         th2_tau_idx = find_nearest(state[:,-1], th2_halfmax)*stepsize
         th1_tau.append(th1_tau_idx)
         th2_tau.append(th2_tau_idx)    
