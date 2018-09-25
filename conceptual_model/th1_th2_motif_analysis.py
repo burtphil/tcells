@@ -19,8 +19,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import modules.th1_th2_conceptual_parameters as cparams
 import matplotlib.gridspec as gridspec
+import matplotlib.backends.backend_pdf
 
-save_path = "/home/burt/Documents/figures/"
+
 
 #==============================================================================
 # model parameters
@@ -93,10 +94,10 @@ ax_time_course(state = alpha_1, ax = ax1, parameters = alpha_1_params)
 ax_time_course(state = alpha_2, ax = ax2, parameters = alpha_2_params)
 ax_il12(il12(il12_conc, parameters = il12_alpha_1_params), ax = ax3)
 ax_il12(il12(il12_conc, parameters = il12_alpha_2_params), ax = ax4)
-ax1.set_title(r"$\alpha_1=1, \alpha_2=2$")
-ax3.set_title(r"$\alpha_1=1, \alpha_2=2$")
-ax2.set_title(r"$\alpha_1=2, \alpha_2=1$")
-ax4.set_title(r"$\alpha_1=2, \alpha_2=1$")
+ax2.set_title(r"$\alpha_1=1, \alpha_2=2$")
+ax4.set_title(r"$\alpha_1=1, \alpha_2=2$")
+ax1.set_title(r"$\alpha_1=2, \alpha_2=1$")
+ax3.set_title(r"$\alpha_1=2, \alpha_2=1$")
 ax2.legend(["Th0","Th1","Th2"])
 plt.tight_layout()
 
@@ -114,13 +115,10 @@ ax[1].set_title(r"$\alpha_{Th1}=$"+str(alpha_idx_th2[1]))
 alpha_idx_th1 = [0,1]
 ax_chain(chain_array = chain_th1(chain_length = chain_length, parameters = chain_th1_params), ax = ax[2])
 ax[2].set_title(r"$\alpha_{Th2}=$"+str(alpha_idx_th1[1]))
+plt.tight_layout()
 
 # vary alpha1 (Th2), set alpha Th1 to 1
 
-
-plt.tight_layout()
-
-"""
 # chain effect
 fig, ax = plt.subplots(1,3, figsize = (12,4))
 ax_time_course(state = alpha_1, ax = ax[0], parameters = alpha_1_params)
@@ -159,4 +157,12 @@ plt.tight_layout()
 #==============================================================================
 #  chain effect constant mean different IL12
 #==============================================================================
-"""
+#==============================================================================
+# save output
+#==============================================================================
+save_path = "/home/burt/Documents/tcell_project/figures/motif_analysis/"
+motif_name = "pos_feedback"
+pdf = matplotlib.backends.backend_pdf.PdfPages(save_path+motif_name+".pdf")
+for fig in xrange(1, plt.gcf().number + 1):
+    pdf.savefig( fig )
+pdf.close()

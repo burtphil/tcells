@@ -109,7 +109,7 @@ def ax_chain(chain_array, ax, labels = "on"):
     ax.scatter(chain, th2_conc, c= "tab:red")
     #
     #
-    ax.set_ylim([0,100])
+    #ax.set_ylim([0,100])
     ax.set_xlim([0, chain_length])
     if labels == "on":
         ax.set_xlabel(r"chain length $\alpha$")

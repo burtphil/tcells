@@ -35,9 +35,9 @@ def th_cell_diff(state, t,alpha_1,alpha_2,rate1,rate2,conc_il12, hill_1, hill_2,
         
     # calculate interferon gamma (ifn) and il4 concentrations based on the number of th1 and th2 cells
     
-    conc_ifn = rate_ifn*state[int(alpha_1)]
-    conc_il4 = rate_il4*state[-1]
-    #print state[-1]
+    conc_ifn = rate_ifn*state[int(alpha_1)]+0.01
+    conc_il4 = rate_il4*state[-1]+0.01
+
 
     ### calculate initial th1 and th2 populations from naive cells based on branching probabilities
     # naive cells
@@ -46,14 +46,16 @@ def th_cell_diff(state, t,alpha_1,alpha_2,rate1,rate2,conc_il12, hill_1, hill_2,
     # branching probablities
     prob_th1 = p_th_diff(conc_ifn,conc_il4,conc_il12, hill_1, half_saturation, base_production_rate_ifn)
     prob_th2 = p_th_diff(conc_ifn,conc_il4,conc_il12, hill_2, half_saturation, base_production_rate_il4)
-        
+  
     # normalized branching probabilities
     prob_th1_norm = prob_th1 / (prob_th1+prob_th2)
     #print prob_th1_norm
     prob_th2_norm = prob_th2 / (prob_th1+prob_th2)
+    #print prob_th2_norm
     th1_0 = prob_th1_norm*th_0
     th2_0 = prob_th2_norm*th_0
-       
+
+    #print th1_0,th2_0
     # assign th1 states and th2 states from initial vector based on chain length alpha
     th1 = np.concatenate(([th1_0],state[1:int(alpha_1+1)]))
     th2 = np.concatenate(([th2_0],state[int(alpha_1+1):]))
@@ -63,7 +65,7 @@ def th_cell_diff(state, t,alpha_1,alpha_2,rate1,rate2,conc_il12, hill_1, hill_2,
         
     th_states = [th1,th2]
     dt_th_states = [dt_th1,dt_th2]
-    rate = [rate1,rate2]
+    rate = [rate1/alpha_1,rate2/alpha_2]
         
     ### differential equations depending on the number on intermediary states
     # loop over states of th1 and th2 cells
@@ -83,7 +85,8 @@ def th_cell_diff(state, t,alpha_1,alpha_2,rate1,rate2,conc_il12, hill_1, hill_2,
 
     # assign new number of naive cells based on the number of present naive cells that were designated th1_0 or th2_0
     dt_th0 = dt_th1[0]+dt_th2[0]
-      
+    
+    
     # return cell states
     dt_state = np.concatenate(([dt_th0],dt_th1[1:],dt_th2[1:]))
         
