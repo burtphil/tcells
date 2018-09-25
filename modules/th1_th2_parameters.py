@@ -21,7 +21,7 @@ k_th2_il12 = 0
 hill_2 = [k_th2_ifn, k_th2_il4, k_th2_il12]
 
 # extracellular il12 concentration
-conc_il12 = 3*10**(-12)
+conc_il12 = 7*10**(-12)
 
 #production rates cytokines
 rate_ifn = 10**(-15)
@@ -34,16 +34,23 @@ kd_il12 = 10**(-12)
 
 half_saturation = [kd_ifn, kd_il4, kd_il12]
 
+#
+base_production_rate_ifn = 0
+base_production_rate_il4 = 0
 ### at some point I need to change this to cell densities
-initial_cells = 10000
+initial_cells = 10000.
 
 ### import fit parameters
-alpha_th1, alpha_th2, beta_th1, beta_th2 = np.load('th1_th2_gamma_fit_params.npy')
+alpha_th1, alpha_th2, beta_th1, beta_th2 = np.load('/home/burt/Documents/code/th_cell_differentiation/th1_th2_gamma_fit_params.npy')
 
+alpha_th1 = int(alpha_th1)
+alpha_th2 = int(alpha_th2)
 # simulation time
 start = 0
-stop = 100
+stop = 300
 stepsize = .1
 simulation_time = np.arange(start, stop, stepsize)
 
-parameters = [alpha_th1, alpha_th2, beta_th1, beta_th2, simulation_time, conc_il12, hill_1, hill_2, rate_ifn, rate_il4, half_saturation, initial_cells]
+parameters = [alpha_th1, alpha_th2, beta_th1, beta_th2, simulation_time,
+              conc_il12, hill_1, hill_2, rate_ifn, rate_il4, half_saturation,
+              base_production_rate_ifn, base_production_rate_il4, initial_cells]

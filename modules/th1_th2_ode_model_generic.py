@@ -22,43 +22,56 @@ def p_th_diff(conc_ifn,conc_il4,conc_il12, hill, half_saturation, base_productio
     returns probability of Th1 Th2 differentiation for given cytokine concentrations
     kinetics are hill-like so hill coefficients for cytokines also need to be provided
     """
+    assert conc_ifn >= 0, "ifn conc is "+str(conc_ifn)+", concentrations must be non-negative."
+    assert conc_il4 >= 0, "il4 conc is "+str(conc_il4)+", concentrations must be non-negative."
+    assert conc_il12 >= 0, "il12conc is "+str(conc_il12)+", concentrations must be non-negative."
+    
+    # watch out, this is tricky because if concentrations are zero and negative feedback (hill coeff < 0)
+    # then you divide by zero, best avoid zero concentrations through base cytokine rate
+    ifn_prob = (conc_ifn/half_saturation[0])**hill[0]
+    il4_prob = (conc_il4/half_saturation[1])**hill[1]
+    il12_prob = (conc_il12/half_saturation[2])**hill[2]
 
-    prob_th_diff = (strength*
-                    ((conc_ifn/half_saturation[0])**hill[0])*
-                    ((conc_il4/half_saturation[1])**hill[1])*
-                    ((conc_il12/half_saturation[2])**hill[2])+
-                    base_production_rate)
+    prob_th_diff = strength*ifn_prob*il4_prob*il12_prob+base_production_rate
+    
+    assert prob_th_diff >= 0, "probability is "+str(prob_th_diff)+" must be non-negative."
+    
     return prob_th_diff
 
-def th_cell_diff(state, t,alpha_1,alpha_2,rate1,rate2,conc_il12, hill_1, hill_2, 
+def th_cell_diff(state,t,alpha_1,alpha_2,rate1,rate2,conc_il12, hill_1, hill_2, 
                  rate_ifn, rate_il4, half_saturation, base_production_rate_ifn, base_production_rate_il4):
         
     # calculate interferon gamma (ifn) and il4 concentrations based on the number of th1 and th2 cells
+    assert type(alpha_1) == int, "alpha dtype is "+str(type(alpha_1))+" but alpha must be an integer."
+    assert type(alpha_2) == int, "alpha dtype is "+str(type(alpha_2))+" but alpha must be an integer."
     
-    conc_ifn = rate_ifn*state[int(alpha_1)]+0.01
-    conc_il4 = rate_il4*state[-1]+0.01
-
+    
+    base_cytokine_rate = 0.0001
+    conc_ifn = rate_ifn*state[alpha_1]+base_cytokine_rate
+    conc_il4 = rate_il4*state[-1]+base_cytokine_rate
 
     ### calculate initial th1 and th2 populations from naive cells based on branching probabilities
     # naive cells
     th_0 = state[0]
-     
+    #assert th_0 > 0, "no initial cells provided"
     # branching probablities
     prob_th1 = p_th_diff(conc_ifn,conc_il4,conc_il12, hill_1, half_saturation, base_production_rate_ifn)
     prob_th2 = p_th_diff(conc_ifn,conc_il4,conc_il12, hill_2, half_saturation, base_production_rate_il4)
-  
+    
+    #print prob_th1, prob_th2
+    assert prob_th1+prob_th2 > 0, "prob th1="+str(prob_th1)+" prob th2="+str(prob_th2)+" cannot normalize."
     # normalized branching probabilities
-    prob_th1_norm = prob_th1 / (prob_th1+prob_th2)
+    prob_th1_norm = prob_th1/(prob_th1+prob_th2)
     #print prob_th1_norm
-    prob_th2_norm = prob_th2 / (prob_th1+prob_th2)
+    prob_th2_norm = prob_th2/(prob_th1+prob_th2)
     #print prob_th2_norm
     th1_0 = prob_th1_norm*th_0
     th2_0 = prob_th2_norm*th_0
 
     #print th1_0,th2_0
     # assign th1 states and th2 states from initial vector based on chain length alpha
-    th1 = np.concatenate(([th1_0],state[1:int(alpha_1+1)]))
-    th2 = np.concatenate(([th2_0],state[int(alpha_1+1):]))
+    th1 = np.concatenate(([th1_0],state[1:(alpha_1+1)]))
+    th2 = np.concatenate(([th2_0],state[(alpha_1+1):]))
       
     dt_th1 = np.ones_like(th1)
     dt_th2 = np.ones_like(th2)
@@ -89,7 +102,9 @@ def th_cell_diff(state, t,alpha_1,alpha_2,rate1,rate2,conc_il12, hill_1, hill_2,
     
     # return cell states
     dt_state = np.concatenate(([dt_th0],dt_th1[1:],dt_th2[1:]))
-        
+    
+    assert np.isnan(dt_state).any() == False, "nans detected in dt_state array."
+    
     return dt_state  
 
 def run_model(title, parameters, model_name = th_cell_diff, save = True):
@@ -132,6 +147,7 @@ def chain(chain_length, parameters, stepsize = 0.01):
     
     for i in chain:
         
+        i = int(i)
         parameters[0] = i
         parameters[1] = i
         parameters[2] = i/mean_th1
@@ -185,6 +201,7 @@ def chain_one(chain_length, parameters, alpha_idx, stepsize = 0.01):
     
     for i in chain:
         
+        i = int(i)
         if alpha_idx[0] == 0:            
             parameters[0] = i
             parameters[2] = i/mean_th1
@@ -244,6 +261,8 @@ def chain_th1(chain_length, parameters, stepsize = 0.01):
     
     for i in chain:
         
+        i = int(i)
+        
         parameters[0] = i
         parameters[2] = i/mean_th1
         #print parameters[1],parameters[3]
@@ -290,6 +309,7 @@ def chain_th2(chain_length, parameters, stepsize = 0.01):
     
     for i in chain:
         
+        i = int(i)
         parameters[1] = i
         parameters[3] = i/mean_th2
         

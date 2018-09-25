@@ -8,7 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
-os.chdir("/home/burt/Documents/scripts/th_cell_differentiation")
+os.chdir("/home/burt/Documents/code/th_cell_differentiation")
 ###############################################################################
 ###################### set up plotting params #################################
 ###############################################################################

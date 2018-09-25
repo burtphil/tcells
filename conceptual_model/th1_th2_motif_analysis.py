@@ -21,8 +21,6 @@ import modules.th1_th2_conceptual_parameters as cparams
 import matplotlib.gridspec as gridspec
 import matplotlib.backends.backend_pdf
 
-
-
 #==============================================================================
 # model parameters
 #==============================================================================
@@ -39,9 +37,9 @@ chain_length = 10
 #==============================================================================
 # control run
 #==============================================================================
-#simulation_name = "sim"
-#state = run_model(simulation_name, parameters = params)
-#plot_time_course(state,params)
+simulation_name = "sim"
+state = run_model(simulation_name, parameters = params)
+plot_time_course(state,params)
 
 #==============================================================================
 # parameter settings
@@ -160,9 +158,11 @@ plt.tight_layout()
 #==============================================================================
 # save output
 #==============================================================================
+"""
 save_path = "/home/burt/Documents/tcell_project/figures/motif_analysis/"
 motif_name = "pos_feedback"
 pdf = matplotlib.backends.backend_pdf.PdfPages(save_path+motif_name+".pdf")
 for fig in xrange(1, plt.gcf().number + 1):
     pdf.savefig( fig )
 pdf.close()
+"""

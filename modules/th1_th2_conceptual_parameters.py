@@ -9,13 +9,13 @@ parameters for conceptual model simulation with equal means and all
 import numpy as np
 #hill coefficients for probability of th1 differentiation
 k_th1_ifn = 1
-k_th1_il4 = 0
+k_th1_il4 = -1
 k_th1_il12 = 1
 
 hill_1 = [k_th1_ifn, k_th1_il4, k_th1_il12]
 
 #hill coefficients for probability of th2 differentiation
-k_th2_ifn = 0
+k_th2_ifn = -1
 k_th2_il4 = 1
 k_th2_il12 = 0
 
@@ -35,8 +35,8 @@ kd_il12 = 1.
 
 half_saturation = [kd_ifn, kd_il4, kd_il12]
 
-base_production_rate_il4 = 0.
-base_production_rate_ifn = 0.
+base_production_rate_il4 = 0.01
+base_production_rate_ifn = 0.01
 ### at some point I need to change this to cell densities
 initial_cells = 1000.
 
@@ -44,7 +44,7 @@ initial_cells = 1000.
 mean_th1 = 1.
 mean_th2 = 1.
 alpha_th1 = 1
-alpha_th2 = 1
+alpha_th2 = 2
 beta_th1 = alpha_th1/mean_th1
 beta_th2 = alpha_th2/mean_th2
 
