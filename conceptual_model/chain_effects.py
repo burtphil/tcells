@@ -16,7 +16,7 @@ from th1_th2_ode_model_generic import chain, il12
 from th1_th2_plotting import plot_chain, subplot_chain, subplot_tau, plot_il12
 import th1_th2_conceptual_parameters as cparams
 import matplotlib.pyplot as plt
-save_path = "/home/burt/Documents/figures/"
+save_path = "/home/burt/Documents/tcell_project/figures/model_simulations/conceptual_model/chain_effects"
 #==============================================================================
 # model parameters
 #==============================================================================
@@ -28,7 +28,7 @@ chain_length = 25
 #==============================================================================
 # IL12 effect
 #==============================================================================
-"""
+
 mean_diff = [0.8,0.9,1.0,1.1,1.2]
 mean_diff_params = list(conceptual_params)
 
@@ -174,7 +174,7 @@ plt.tight_layout()
 mean_diff = [0.5,0.75,1,1.25,1.5]
 il_12 = mean_diff
 params = list(conceptual_params)
-
+"""
 fig, axes = plt.subplots(len(il_12), len(mean_diff), figsize = (20,20))
 for i,x in enumerate(mean_diff):
     ax_mean_diff = axes[i]
@@ -196,5 +196,6 @@ for i,x in enumerate(mean_diff):
                 ax_il12.set_ylabel(r"$\tau_{1/2}$")
             
 plt.tight_layout()
+
 fig. savefig(save_path+"il12_mean_diff_tau_effect.pdf", bbox_inches = "tight", dpi=1200)
 """

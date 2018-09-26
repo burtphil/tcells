@@ -174,5 +174,5 @@ def ax_il12(il12_array, ax, xlabel = "IL-12 [a.u.]", factor_x_axis = 1.):
     ax.set_ylim([0,100])
     ax.set_xlim([il12_conc_pm[0],il12_conc_pm[-1]])
     
-    ax.set_ylabel("% Th cells")
+    #ax.set_ylabel("% Th cells after")
     
