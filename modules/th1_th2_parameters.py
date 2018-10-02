@@ -51,6 +51,9 @@ stop = 300
 stepsize = .1
 simulation_time = np.arange(start, stop, stepsize)
 
+degradation = 0
+
 parameters = [alpha_th1, alpha_th2, beta_th1, beta_th2, simulation_time,
               conc_il12, hill_1, hill_2, rate_ifn, rate_il4, half_saturation,
-              base_production_rate_ifn, base_production_rate_il4, initial_cells]
+              base_production_rate_ifn, base_production_rate_il4, initial_cells,
+              degradation]

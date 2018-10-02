@@ -24,10 +24,12 @@ save_path = "/home/burt/Documents/figures/"
 
 def plot_time_course(th1_th2_model, parameters, save = "no", title = True, title_name = ""):
     
-    alpha_1, alpha_2, rate1, rate2, simulation_time, conc_il12, hill_1, hill_2, rate_ifn, rate_il4, half_saturation,base_production_rate_ifn, base_production_rate_il4, initial_cells = parameters
+    (alpha_1, alpha_2, rate1, rate2, simulation_time, conc_il12, hill_1, hill_2,
+     rate_ifn, rate_il4, half_saturation,base_production_rate_ifn,
+     base_production_rate_il4, initial_cells, degradation) = parameters
     norm = initial_cells/100
     th0_cells = th1_th2_model[:,0]/norm
-    th1_cells = th1_th2_model[:,int(alpha_1)]/norm
+    th1_cells = th1_th2_model[:,alpha_1+1]/norm
     th2_cells = th1_th2_model[:,-1]/norm
     
     fig, ax = plt.subplots(1,1, figsize = (5,5))
@@ -51,10 +53,13 @@ def plot_time_course(th1_th2_model, parameters, save = "no", title = True, title
         
 def ax_time_course(state, ax, parameters, linestyle = "-"):
     
-    alpha_1, alpha_2, rate1, rate2, simulation_time, conc_il12, hill_1, hill_2, rate_ifn, rate_il4, half_saturation,base_production_rate_ifn, base_production_rate_il4, initial_cells = parameters
+    (alpha_1, alpha_2, rate1, rate2, simulation_time, conc_il12, hill_1, hill_2,
+     rate_ifn, rate_il4, half_saturation,base_production_rate_ifn,
+     base_production_rate_il4, initial_cells, degradation) = parameters
+     
     norm = initial_cells/100
     th0_cells = state[:,0]/norm
-    th1_cells = state[:,int(alpha_1)]/norm
+    th1_cells = state[:,alpha_1+1]/norm
     th2_cells = state[:,-1]/norm
     
     #print th1_cells[-1],th2_cells[-1]
