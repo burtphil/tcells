@@ -49,4 +49,4 @@ ax[1].set_ylabel("% Th cells after 5 hrs")
 ax[0].legend([r"Th0","Th1","Th2"])
 plt.tight_layout()
 
-fig.savefig("/home/burt/Documents/tcell_project/figures/model_simulations/data_model.svg", bbox_inches = "tight", dpi = 1200)
+#fig.savefig("/home/burt/Documents/tcell_project/figures/model_simulations/data_model.svg", bbox_inches = "tight", dpi = 1200)

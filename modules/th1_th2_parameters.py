@@ -21,7 +21,7 @@ k_th2_il12 = 0
 hill_2 = [k_th2_ifn, k_th2_il4, k_th2_il12]
 
 # extracellular il12 concentration
-conc_il12 = 7*10**(-12)
+conc_il12 = 5*10**(-12)
 
 #production rates cytokines
 rate_ifn = 10**(-15)
@@ -47,7 +47,7 @@ alpha_th1 = int(alpha_th1)
 alpha_th2 = int(alpha_th2)
 # simulation time
 start = 0
-stop = 300
+stop = 100
 stepsize = .1
 simulation_time = np.arange(start, stop, stepsize)
 

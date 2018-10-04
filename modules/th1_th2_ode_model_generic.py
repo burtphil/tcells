@@ -72,8 +72,11 @@ def th_cell_diff(state,t,alpha_1,alpha_2,rate1,rate2,conc_il12, hill_1, hill_2,
     conc_il4 = rate_il4*state[-1]+base_cytokine_rate
 
     ### calculate initial th1 and th2 populations from naive cells based on branching probabilities
+    
     th_0 = state[0]
-    assert th_0 > 0, "no initial cells provided"
+    
+    if t<1:   
+        assert th_0 > 0, "no initial cells provided or cells"
     
     # branching probablities
     prob_th1 = p_th_diff(conc_ifn,conc_il4,conc_il12, hill_1, half_saturation, base_production_rate_ifn)
