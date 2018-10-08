@@ -86,7 +86,7 @@ def th_cell_diff(state,t,alpha_1,alpha_2,rate1,rate2,conc_il12, hill_1, hill_2,
     # normalized branching probabilities
     p_1 = prob_th1/(prob_th1+prob_th2)
     p_2 = prob_th2/(prob_th1+prob_th2)
-    #print p_1,p_2
+    #print p_1
     # assign th1 states and th2 states from initial vector based on chain length alpha
     th1 = state[1:(alpha_1+2)]
     th2 = state[(alpha_1+2):]

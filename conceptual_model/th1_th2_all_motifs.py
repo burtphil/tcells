@@ -173,7 +173,7 @@ for hill_coeff, motif_name in zip(hill_coefficients, motif_names):
     # save output
     #==============================================================================
     
-    save_path = "/home/burt/Documents/tcell_project/figures/model_simulations/conceptual_model/motif_analysis/reciprocal_probabilities/"
+    save_path = "/home/burt/Documents/tcell_project/figures/model_simulations/conceptual_model/motif_analysis/menten_probabilities/"
     pdf = matplotlib.backends.backend_pdf.PdfPages(save_path+motif_name+".pdf")
     for fig in xrange(1, plt.gcf().number + 1):
         pdf.savefig(fig)
