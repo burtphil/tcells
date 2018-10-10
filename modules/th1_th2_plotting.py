@@ -25,8 +25,7 @@ save_path = "/home/burt/Documents/figures/"
 def plot_time_course(th1_th2_model, parameters, save = "no", title = True, title_name = ""):
     
     (alpha_1, alpha_2, rate1, rate2, simulation_time, conc_il12, hill_1, hill_2,
-     rate_ifn, rate_il4, half_saturation,base_production_rate_ifn,
-     base_production_rate_il4, initial_cells, degradation) = parameters
+     rate_ifn, rate_il4, half_saturation, initial_cells, degradation) = parameters
     norm = initial_cells/100
     th0_cells = th1_th2_model[:,0]/norm
     th1_cells = th1_th2_model[:,alpha_1+1]/norm
@@ -54,8 +53,7 @@ def plot_time_course(th1_th2_model, parameters, save = "no", title = True, title
 def ax_time_course(state, ax, parameters, linestyle = "-"):
     
     (alpha_1, alpha_2, rate1, rate2, simulation_time, conc_il12, hill_1, hill_2,
-     rate_ifn, rate_il4, half_saturation,base_production_rate_ifn,
-     base_production_rate_il4, initial_cells, degradation) = parameters
+     rate_ifn, rate_il4, half_saturation, initial_cells, degradation) = parameters
      
     norm = initial_cells/100
     th0_cells = state[:,0]/norm

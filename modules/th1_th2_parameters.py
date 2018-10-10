@@ -34,9 +34,6 @@ kd_il12 = 10**(-12)
 
 half_saturation = [kd_ifn, kd_il4, kd_il12]
 
-#
-base_production_rate_ifn = 0
-base_production_rate_il4 = 0
 ### at some point I need to change this to cell densities
 initial_cells = 10000.
 
@@ -55,5 +52,4 @@ degradation = 0
 
 parameters = [alpha_th1, alpha_th2, beta_th1, beta_th2, simulation_time,
               conc_il12, hill_1, hill_2, rate_ifn, rate_il4, half_saturation,
-              base_production_rate_ifn, base_production_rate_il4, initial_cells,
-              degradation]
+              initial_cells, degradation]

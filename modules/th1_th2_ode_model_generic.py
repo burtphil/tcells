@@ -16,7 +16,7 @@ def find_nearest(array, value):
     idx = (np.abs(array - value)).argmin()
     return idx
 
-def p_th_diff(conc_ifn,conc_il4,conc_il12, hill, half_saturation, base_production_rate, strength = 1.):
+def p_th_diff(conc_ifn,conc_il4,conc_il12, hill, half_saturation, strength = 1.):
     """
     returns probability of Th1 Th2 differentiation for given cytokine concentrations
     kinetics are hill-like so hill coefficients for cytokines also need to be provided
@@ -31,13 +31,13 @@ def p_th_diff(conc_ifn,conc_il4,conc_il12, hill, half_saturation, base_productio
     il4_prob = (conc_il4/half_saturation[1])**hill[1]
     il12_prob = (conc_il12/half_saturation[2])**hill[2]
 
-    prob_th_diff = strength*ifn_prob*il4_prob*il12_prob+base_production_rate
+    prob_th_diff = strength*ifn_prob*il4_prob*il12_prob
     
     assert prob_th_diff >= 0, "probability is "+str(prob_th_diff)+" must be non-negative."
     
     return prob_th_diff
 
-def p_menten(conc_ifn,conc_il4,conc_il12, hill, half_saturation, base_production_rate, strength = 1.):
+def p_menten(conc_ifn,conc_il4,conc_il12, hill, half_saturation,  strength = 1.):
     """
     returns probability of Th1 Th2 differentiation for given cytokine concentrations
     kinetics are hill-like so hill coefficients for cytokines also need to be provided
@@ -52,7 +52,7 @@ def p_menten(conc_ifn,conc_il4,conc_il12, hill, half_saturation, base_production
     hill = np.array(hill)
     half_saturation = np.array(half_saturation)
     menten = cytokine**hill/(half_saturation+cytokine**hill)
-    prob_th_diff = strength*np.prod(menten)+base_production_rate
+    prob_th_diff = strength*np.prod(menten)
     
     assert prob_th_diff >= 0, "probability is "+str(prob_th_diff)+" must be non-negative."
     
@@ -61,7 +61,7 @@ def p_menten(conc_ifn,conc_il4,conc_il12, hill, half_saturation, base_production
 
 
 def th_cell_diff(state,t,alpha_1,alpha_2,rate1,rate2,conc_il12, hill_1, hill_2, 
-                 rate_ifn, rate_il4, half_saturation, base_production_rate_ifn, base_production_rate_il4, degradation):
+                 rate_ifn, rate_il4, half_saturation, degradation, fun_probability = p_th_diff):
         
     # calculate interferon gamma (ifn) and il4 concentrations based on the number of th1 and th2 cells
     assert type(alpha_1) == int, "alpha dtype is "+str(type(alpha_1))+" but alpha must be an integer."
@@ -79,8 +79,8 @@ def th_cell_diff(state,t,alpha_1,alpha_2,rate1,rate2,conc_il12, hill_1, hill_2,
         assert th_0 > 0, "no initial cells provided or cells"
     
     # branching probablities
-    prob_th1 = p_th_diff(conc_ifn,conc_il4,conc_il12, hill_1, half_saturation, base_production_rate_ifn)
-    prob_th2 = p_th_diff(conc_ifn,conc_il4,conc_il12, hill_2, half_saturation, base_production_rate_il4)    
+    prob_th1 = fun_probability(conc_ifn,conc_il4,conc_il12, hill_1, half_saturation)
+    prob_th2 = fun_probability(conc_ifn,conc_il4,conc_il12, hill_2, half_saturation)    
     assert prob_th1+prob_th2 > 0, "prob th1="+str(prob_th1)+" prob th2="+str(prob_th2)+" cannot normalize."
 
     # normalized branching probabilities
@@ -134,8 +134,7 @@ def run_model(title, parameters, model_name = th_cell_diff, save = True):
     needs shape and rate params as input as well as simulation time
     """
     (alpha_1, alpha_2, rate1, rate2, simulation_time, conc_il12, hill_1, hill_2,
-     rate_ifn, rate_il4, half_saturation, base_production_rate_ifn, 
-     base_production_rate_il4, initial_cells, degradation) = parameters
+     rate_ifn, rate_il4, half_saturation, initial_cells, degradation) = parameters
 
     # define initial conditions based on number of intermediary states
     no_of_states = int(alpha_1+alpha_2+3)
@@ -144,8 +143,7 @@ def run_model(title, parameters, model_name = th_cell_diff, save = True):
     
     state = odeint(model_name, ini_cond, simulation_time, 
                    args =(alpha_1,alpha_2,rate1,rate2,conc_il12, hill_1,hill_2,
-                          rate_ifn,rate_il4,half_saturation, base_production_rate_ifn,
-                          base_production_rate_il4, degradation))
+                          rate_ifn,rate_il4,half_saturation, degradation))
     
     # save both model simulation and associated parameters
     if save == True:
