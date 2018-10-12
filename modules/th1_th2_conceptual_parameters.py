@@ -41,7 +41,7 @@ initial_cells = 10000.
 #
 mean_th1 = 1.
 mean_th2 = 1.
-alpha_th1 = 1
+alpha_th1 = 2
 alpha_th2 = 1
 beta_th1 = alpha_th1/mean_th1
 beta_th2 = alpha_th2/mean_th2
@@ -52,7 +52,7 @@ degradation = 0
 # simulation time
 
 start = 0
-stop = 10
+stop = 100
 # watch out, method chain also takes stepsize as independent argument
 stepsize = .01
 simulation_time = np.arange(start, stop, stepsize)
