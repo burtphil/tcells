@@ -16,7 +16,7 @@ def find_nearest(array, value):
     idx = (np.abs(array - value)).argmin()
     return idx
 
-def p_th_diff(conc_ifn,conc_il4,conc_il12, hill, half_saturation, strength = 1.):
+def p_th_diff(conc_ifn,conc_il4,conc_il12, hill, half_saturation, strength = 1.0):
     """
     returns probability of Th1 Th2 differentiation for given cytokine concentrations
     kinetics are hill-like so hill coefficients for cytokines also need to be provided
@@ -67,9 +67,9 @@ def th_cell_diff(state,t,alpha_1,alpha_2,rate1,rate2,conc_il12, hill_1, hill_2,
     assert type(alpha_1) == int, "alpha dtype is "+str(type(alpha_1))+" but alpha must be an integer."
     assert type(alpha_2) == int, "alpha dtype is "+str(type(alpha_2))+" but alpha must be an integer."
         
-    base_cytokine_rate = 0.00001
-    conc_ifn = rate_ifn*state[alpha_1+1]+base_cytokine_rate
-    conc_il4 = rate_il4*state[-1]+base_cytokine_rate
+
+    conc_ifn = rate_ifn*state[alpha_1+1]+half_saturation[0]
+    conc_il4 = rate_il4*state[-1]+half_saturation[1]
 
     ### calculate initial th1 and th2 populations from naive cells based on branching probabilities
     
@@ -189,7 +189,7 @@ def chain(chain_length, parameters, stepsize = 0.01):
         th1_halfmax = th1_endstate/2
         th2_halfmax = th2_endstate/2
         
-        th1_tau_idx = find_nearest(state[:,int(i)], th1_halfmax)*stepsize
+        th1_tau_idx = find_nearest(state[:,int(i)+1], th1_halfmax)*stepsize
         th2_tau_idx = find_nearest(state[:,-1], th2_halfmax)*stepsize
         th1_tau.append(th1_tau_idx)
         th2_tau.append(th2_tau_idx)    
@@ -250,7 +250,7 @@ def chain_one(chain_length, parameters, alpha_idx, stepsize = 0.01):
         th1_halfmax = th1_endstate/2
         th2_halfmax = th2_endstate/2
         
-        th1_tau_idx = find_nearest(state[:,int(i)], th1_halfmax)*stepsize
+        th1_tau_idx = find_nearest(state[:,int(i)+1], th1_halfmax)*stepsize
         th2_tau_idx = find_nearest(state[:,-1], th2_halfmax)*stepsize
         th1_tau.append(th1_tau_idx)
         th2_tau.append(th2_tau_idx)    
@@ -303,7 +303,14 @@ def chain_th1(chain_length, parameters, stepsize = 0.01):
         th2_conc.append(th2_endstate)
         
         #print th1_endstate, th2_endstate
-            
+        th1_halfmax = th1_endstate/2
+        th2_halfmax = th2_endstate/2
+        
+        th1_tau_idx = find_nearest(state[:,int(i)+1], th1_halfmax)*stepsize
+        th2_tau_idx = find_nearest(state[:,-1], th2_halfmax)*stepsize
+        th1_tau.append(th1_tau_idx)
+        th2_tau.append(th2_tau_idx)     
+        
     norm = parameters[-2]/100
     th1_conc = np.array(th1_conc)/norm
     th2_conc = np.array(th2_conc)/norm
@@ -329,7 +336,7 @@ def chain_th2(chain_length, parameters, stepsize = 0.01):
     
     th1_tau = []
     th2_tau = []
-    
+
     for i in chain:
         
         i = int(i)
@@ -349,7 +356,7 @@ def chain_th2(chain_length, parameters, stepsize = 0.01):
         th1_halfmax = th1_endstate/2
         th2_halfmax = th2_endstate/2
         
-        th1_tau_idx = find_nearest(state[:,parameters[0]], th1_halfmax)*stepsize
+        th1_tau_idx = find_nearest(state[:,parameters[0]+1], th1_halfmax)*stepsize
         th2_tau_idx = find_nearest(state[:,-1], th2_halfmax)*stepsize
         th1_tau.append(th1_tau_idx)
         th2_tau.append(th2_tau_idx)    

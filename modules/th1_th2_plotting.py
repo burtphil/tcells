@@ -6,7 +6,7 @@ Created on Mon Sep 10 09:26:10 2018
 @author: burt
 """
 import matplotlib.pyplot as plt
-
+import numpy as np
 ######## plotting params
 SMALL_SIZE = 15
 MEDIUM_SIZE = 20
@@ -38,7 +38,7 @@ def plot_time_course(th1_th2_model, parameters, save = "no", title = True, title
     ax.set_yticks([0,50,100])
     ax.set_ylim([0,100])
     ax.set_xlim([simulation_time[0],simulation_time[-1]])
-    ax.set_xlabel("Time [h]")
+    ax.set_xlabel("time")
     ax.set_ylabel("% Th cells")
     
     if title == True:
@@ -67,7 +67,7 @@ def ax_time_course(state, ax, parameters, linestyle = "-"):
     ax.set_yticks([0,50,100])
     ax.set_ylim([0,100])
     ax.set_xlim([simulation_time[0],simulation_time[-1]])
-    ax.set_xlabel("Time [h]")
+    ax.set_xlabel("time")
     ax.set_ylabel("% Th cells")
     
        
@@ -83,7 +83,7 @@ def plot_chain(chain_array, save = "no"):
     ax[0].scatter(chain, th1_conc, c= "tab:blue")
     ax[0].scatter(chain, th2_conc, c= "tab:red")
     ax[0].set_xlabel(r"chain length $\alpha$")
-    ax[0].set_ylabel("% Th cells after 100 hrs")
+    ax[0].set_ylabel("% Th cells in steady state")
     ax[0].set_ylim([0,100])
     ax[0].set_xlim([0, chain_length])
     ax[0].set_yticks([0,50,100])
@@ -100,7 +100,7 @@ def plot_chain(chain_array, save = "no"):
     if save != "no":
         fig.savefig(save_path+save+".svg", bbox_inches = "tight", dpi = 1200)
 
-def ax_chain(chain_array, ax, labels = "on"):
+def ax_chain(chain_array, ax, steps_x_ticks = 2):
     chain = chain_array[0]
     th1_conc = chain_array[1]
     th2_conc = chain_array[2]
@@ -114,15 +114,12 @@ def ax_chain(chain_array, ax, labels = "on"):
     #
     #ax.set_ylim([0,100])
     ax.set_xlim([0, chain_length])
-    if labels == "on":
-        ax.set_xlabel(r"chain length $\alpha$")
-        ax.set_ylabel("% Th cells after 100 hrs")
-        ax.set_yticks([0,50,100])
-    else:
-        ax.set_yticks([])
-        ax.set_xticks([])
+    ax.set_xlabel(r"chain length $\alpha$")
+    ax.set_yticks([0,50,100])
+    ax.set_xticks(np.arange(0,chain_length+steps_x_ticks, steps_x_ticks))
+
         
-def subplot_tau(chain_array, ax):
+def ax_tau(chain_array, ax, steps_x_ticks = 2):
     chain = chain_array[0]
     #th1_conc = chain_array[1]
     #th2_conc = chain_array[2]
@@ -132,11 +129,12 @@ def subplot_tau(chain_array, ax):
     
     ax.scatter(chain, th1_tau, c= "tab:blue")
     ax.scatter(chain, th2_tau, c= "tab:red")
-    #ax.set_xlabel(r"chain length $\alpha$")
-    #ax.set_ylabel(r"$\tau_{1/2}$")
+    ax.set_xlabel(r"chain length $\alpha$")
+    ax.set_ylabel(r"$\tau_{1/2}$")
     #ax[1].set_ylim([0,50])
     ax.set_xlim([0, chain_length])
-
+    ax.set_xticks(np.arange(0,chain_length+steps_x_ticks, steps_x_ticks))
+    
 def plot_il12(il12_array, xlabel = "IL-12 [pm]", factor_x_axis = 10**12, save = "no"):
     
     il12_conc = il12_array[0]
