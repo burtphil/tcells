@@ -61,7 +61,8 @@ def p_menten(conc_ifn,conc_il4,conc_il12, hill, half_saturation,  strength = 1.)
 
 
 def th_cell_diff(state,t,alpha_1,alpha_2,rate1,rate2,conc_il12, hill_1, hill_2, 
-                 rate_ifn, rate_il4, half_saturation, degradation, fun_probability = p_th_diff):
+                 rate_ifn, rate_il4, half_saturation, degradation, const_thn = False,
+                 fun_probability = p_th_diff):
         
     # calculate interferon gamma (ifn) and il4 concentrations based on the number of th1 and th2 cells
     assert type(alpha_1) == int, "alpha dtype is "+str(type(alpha_1))+" but alpha must be an integer."
@@ -114,12 +115,16 @@ def th_cell_diff(state,t,alpha_1,alpha_2,rate1,rate2,conc_il12, hill_1, hill_2,
             elif j != (len(th_state)-1):
                 dt_state[j] = r*(th_state[j-1]-th_state[j])
             else:
-                dt_state[j] = r*th_state[j-1]-degradation
+                dt_state[j] = r*th_state[j-1]-degradation*th_state[j]
 
     # assign new number of naive cells based on the number of present naive cells that were designated th1_0 or th2_0
-    #dt_th0 = state[0]
-    dt_th0 = -(p_1+p_2)*th_0
+    # if a constant Th naive cell pool is assumed (default parameter const_thn = True) then change should be 0
+    # because pool should not change
     
+    if const_thn == False:
+        dt_th0 = -th_0
+    else:
+        dt_th0 = 0
    # return cell states
     dt_state = np.concatenate(([dt_th0],dt_th1,dt_th2))
     
