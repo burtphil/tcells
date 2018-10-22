@@ -69,15 +69,20 @@ ax[0].set_xlabel("time")
 ax[0].set_ylabel("cells")
 ax[0].legend()
 ax[0].set_xlim([cparams.start,cparams.stop])
+ax[0].set_ylim([0,cparams.initial_cells])
+ax[0].set_yticks([0,int(cparams.initial_cells/2),cparams.initial_cells])
+#ax[0].set_title("stochastic simulation")
 
 
 ax_time_course(state = state, ax = ax[1], parameters = model_params)
 ax[1].set_xlim([cparams.start,cparams.stop])
-ax[0].set_yticks([0,25,50,75,100])
-ax[1].set_yticks([0,25,50,75,100])
-fig.suptitle(r"$\alpha_1=1,\alpha_2=1$, all parameters set equal for ODE and stochastic simulation", fontsize = 12)
-plt.tight_layout()
+ax[1].set_xlabel("time")
 
+ax[1].set_yticks([0,50,100])
+#ax[1].set_title("ODE simulation")
+fig.suptitle(r"$\alpha_1=10,\alpha_2=1$, 10000 cells, stochastic sim (left) vs ODE sim (right)", fontsize = 12)
+plt.tight_layout()
+"""
 cells, time = run_stochastic_simulation(start = cparams.start, stop = cparams.stop, nsteps = cparams.nsteps, ncells = cparams.ncells)
 all_cells = cells[:,:,0]
 
@@ -88,15 +93,15 @@ df["time"] = time
 df = pd.melt(df, id_vars = ["time"], var_name = "cell_no", value_name = "cell_type")
 
 df2 = df[["time","cell_type"]]
-df2 =df2.groupby(['time', 'cell_type']).size().reset_index(name='counts')
+df3 = df2.groupby(['time', 'cell_type']).size().reset_index(name='counts')
 
-
-naive_cells = df2[df2["cell_type"]==0]
-th1_cells = df2[df2["cell_type"]==3]
-th2_cells = df2[df2["cell_type"]==4]
+naive_cells = df3[df3["cell_type"]==0]
+th1_cells = df3[df3["cell_type"]==3]
+th2_cells = df3[df3["cell_type"]==4]
 
 new_df = naive_cells
 new_df = new_df.append(th1_cells)
 new_df = new_df.append(th2_cells)
 
 sns.relplot(x="time", y="counts", hue = "cell_type", kind="line", data=new_df)
+"""

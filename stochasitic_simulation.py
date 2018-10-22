@@ -105,9 +105,13 @@ def run_stochastic_simulation(start, stop, nsteps, ncells, nstates = 3):
     """
     cells = np.zeros((ncells,nsteps,nstates))    
     time = np.linspace(start,stop,nsteps)
-        
+    numbers_rnd_1 = [np.random.rand() for i in range(ncells)]
+    ### calculate time until fate is decided. probabilities are updated dynamically
+    fate_times = [np.random.exponential(cparams.precursor_rate) for i in range(ncells)]
+    
     for i in range(len(time)-1):
         t = time[i]
+        t_new = time[i+1]
         cell_j = cells[:,i,:]
         
         n_th1 = count_cells(cell_j, cell_idx = cparams.th1_idx)
@@ -125,21 +129,23 @@ def run_stochastic_simulation(start, stop, nsteps, ncells, nstates = 3):
         for idx, cell in enumerate(cell_j):
             # is there a cell fate switch?
             #print cell.shape
-            if cell[0] == cparams.thn_idx and np.random.exponential(cparams.precursor_rate) < t:
+            n_rnd_1 = numbers_rnd_1[idx]
+            fate_time = fate_times[idx]
+            if cell[0] == cparams.thn_idx and fate_time < t:
                 # calculate probabilities which fate to choose
                 # assign new cell fate
                 cell[0] = draw_fate(probs)
                 cell[1] = t
                 
             if cell[0] == cparams.th1_0_idx and t > cell[1]:
-                if np.random.rand() > cell[2]:
-                    cell[2] = cell[2]+gamma_cdf(t-cell[1],cparams.alpha_th1,cparams.beta_th1)
+                if n_rnd_1 > cell[2]:
+                    cell[2] = cell[2]+(gamma_cdf(t_new-cell[1],cparams.alpha_th1,cparams.beta_th1)-gamma_cdf(t-cell[1],cparams.alpha_th1,cparams.beta_th1))
                 else:
                     cell[0] = cparams.th1_idx
                     
             if cell[0] == cparams.th2_0_idx and t > cell[1]:
-                if np.random.rand() > cell[2]:
-                    cell[2] = cell[2]+gamma_cdf(t-cell[1],cparams.alpha_th2,cparams.beta_th2)
+                if n_rnd_1 > cell[2]:
+                    cell[2] = cell[2]+(gamma_cdf(t_new-cell[1],cparams.alpha_th2,cparams.beta_th2)-gamma_cdf(t-cell[1],cparams.alpha_th2,cparams.beta_th2))
                 else:
                     cell[0] = cparams.th2_idx
             
@@ -147,6 +153,70 @@ def run_stochastic_simulation(start, stop, nsteps, ncells, nstates = 3):
             
     return [cells, time]    
 
+def semi_markov_simulation(start, stop, nsteps, ncells, alpha, beta, nstates = 2):
+    """
+    run a simulation of the th1 th2 models   
+    this function uses the a cumulative gamma fct integral to calculate transition probability
+    """
+    cells = np.zeros((ncells,nsteps,nstates))
+    time = np.linspace(start,stop,nsteps)
+    numbers_rnd = [np.random.rand() for i in range(ncells)]
+    
+    for i in range(len(time)-1):
+        t = time[i]
+        #print t
+        cell_j = cells[:,i,:]
+        #print cell_j.shape
+        for j in range(ncells):
+            cell = cell_j[j,:]
+            n_rnd = numbers_rnd[j]
+            # is there a cell fate switch?
+            #print cell.shape
+            #print cell                
+            if cell[0] == 0:
+                p_survive = survival_fct(t,alpha,beta)
+                
+                if n_rnd > p_survive:
+                    cell[0] = 1
+                    #print rnd_no, p_survive, t
+                    #print t
+                    
+            cells[j,i+1,:] = cell
+            
+    return [cells, time]               
+
+def semi_markov_simulation2(start, stop, nsteps, ncells, alpha, beta, nstates = 2):
+    """
+    run a simulation of the th1 th2 models   
+    this function uses the a cumulative gamma fct integral to calculate transition probability
+    """
+    cells = np.zeros((ncells,nsteps,nstates))    
+    time = np.linspace(start,stop,nsteps)
+    numbers_rnd = [np.random.rand() for i in range(ncells)]
+        
+    for i in range(len(time)-1):
+        t = time[i]
+        t_new = time[i+1]
+        #print t
+        cell_j = cells[:,i,:]
+        #print cell_j.shape
+        for j in range(ncells):
+            cell = cell_j[j,:]
+            n_rnd = numbers_rnd[j]
+            # is there a cell fate switch?
+            #print cell.shape
+            #print cell                
+            if cell[0] == 0:
+                if n_rnd > cell[1]:
+                    cell[1] = cell[1]+(gamma_cdf(t_new, alpha, beta)-gamma_cdf(t, alpha, beta))
+                else:
+                    cell[0] = 1
+                    
+            cells[j,i+1,:] = cell
+            
+    return [cells, time]     
+
+    
 def run_simulation2(start, stop, nsteps, ncells, nstates = 3):
     """
     this function uses survival function to calculate transition probability 
