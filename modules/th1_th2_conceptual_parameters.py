@@ -36,7 +36,7 @@ kd_il12 = 1.
 half_saturation = [kd_ifn, kd_il4, kd_il12]
 
 ### at some point I need to change this to cell densities
-initial_cells = 10000.
+initial_cells = 100000.
 
 #
 mean_th1 = 1.
@@ -73,6 +73,6 @@ th2_idx = 4
 
 precursor_rate = 1.
 
-nsteps = 100
+nsteps = 1000
 ncells = int(initial_cells)
-nsim = 10
+nsim = 2
