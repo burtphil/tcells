@@ -79,6 +79,20 @@ for coeff_1, coeff_2, fig_name in zip(hill_1,hill_2,fig_names):
     chain_both_params = list(params)
     chain_th1_params = list(params)
     chain_th2_params = list(params)
+    img=mpimg.imread('images/'+fig_name+".png")
+    
+    fig, ax = plt.subplots(1,4, figsize = (16,4))
+    ax[0].imshow(img)
+    ax[0].axis('off')
+    ax_chain(chain_array = chain(chain_length = chain_length, parameters = chain_both_params), ax = ax[1])
+    ax_chain(chain_array = chain_th2(chain_length = chain_length, parameters = chain_th2_params), ax = ax[2])
+    ax_chain(chain_array = chain_th1(chain_length = chain_length, parameters = chain_th1_params), ax = ax[3])
+    plt.tight_layout()
+    path = "/home/burt/Documents/tcell_project/figures/"
+    fig.savefig(path+fig_name+"_det.pdf", bbox_inches = "tight", dpi = 1200)
+    
+    """
+    # uncomment if to make a large figure including time series and probabilities"
     alpha_1_params = list(params)
     
     tau_both_params = list(params)
@@ -157,8 +171,11 @@ for coeff_1, coeff_2, fig_name in zip(hill_1,hill_2,fig_names):
     plt.tight_layout()
     
     path = "/home/burt/Documents/tcell_project/figures/model_simulations/conceptual_model/motif_analysis/new_motifs/"
-    fig.savefig(path+fig_name+"_motif.pdf", bbox_inches = "tight", dpi = 1200)
-    plt.close(fig)
+    #fig.savefig(path+fig_name+"_motif.pdf", bbox_inches = "tight", dpi = 1200)
+    #plt.close(fig)
+    """
+
+    
 """
 # vary alpha1 (Th2), set alpha Th1 to 1
 
