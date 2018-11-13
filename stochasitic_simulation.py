@@ -55,6 +55,8 @@ def cytokine_prod(n_th, rate, base_rate = 1.0):
     """
     calculate cytokine concentration based on number of cells, the production rate and
     a basal cytokine concentration
+    note that if neg and pos feedback should be symmetric, base_rate should be set to 
+    the half saturation konstant
     """
     return n_th*rate+base_rate
 
@@ -73,7 +75,7 @@ def p_norm(p1,p2):
     p2 = 1-p1
     return [p1,p2]
 
-def p_th_diff(conc_ifn,conc_il4,conc_il12, hill, half_saturation, strength = 1.0):
+def p_th_diff(conc_ifn, conc_il4, conc_il12, hill, half_saturation, strength = 1.0):
     """
     returns probability of Th1 Th2 differentiation for given cytokine concentrations
     kinetics are hill-like so hill coefficients for cytokines also need to be provided
@@ -98,57 +100,83 @@ def p_th_diff(conc_ifn,conc_il4,conc_il12, hill, half_saturation, strength = 1.0
 # simulations
 #==============================================================================
 
-def run_stochastic_simulation(start, stop, nsteps, ncells, nstates = 3):
+def run_stochastic_simulation(start, stop, nsteps, ncells, 
+                              alpha_th1 = cparams.alpha_th1,
+                              alpha_th2 = cparams.alpha_th2,
+                              beta_th1 = cparams.beta_th1,
+                              beta_th2 = cparams.beta_th2,
+                              hill_1 = cparams.hill_1,
+                              hill_2 = cparams.hill_2,
+                              half_saturation = cparams.half_saturation,
+                              nstates = 3,
+                              ):
     """
     run a simulation of the th1 th2 models   
     this function uses the a cumulative gamma fct integral to calculate transition probability
     """
+    
+    # 3d cell vector that contains number of cells, number of time steps and number of states of each cell
     cells = np.zeros((ncells,nsteps,nstates))    
     time = np.linspace(start,stop,nsteps)
+    
+    # draw two random numbers for each cell, one for the time when cell fate is decided (from exp distribution)
+    # and one, to compare with response time to decide time of state transition
     numbers_rnd_1 = [np.random.rand() for i in range(ncells)]
-    ### calculate time until fate is decided. probabilities are updated dynamically
     fate_times = [np.random.exponential(cparams.precursor_rate) for i in range(ncells)]
     
     for i in range(len(time)-1):
+        # for every time point loop over every cell
         t = time[i]
         t_new = time[i+1]
         cell_j = cells[:,i,:]
         
+        # get numbers of differentiated cells for each time point
         n_th1 = count_cells(cell_j, cell_idx = cparams.th1_idx)
         n_th2 = count_cells(cell_j, cell_idx = cparams.th2_idx)
         
+        # get cytokine concentrations based on differentiated cell numbers
         ifn = cytokine_prod(n_th1, rate = cparams.rate_ifn, base_rate = cparams.kd_ifn)
         il4 = cytokine_prod(n_th2, rate = cparams.rate_il4, base_rate = cparams.kd_il4)
         
-        p1 = p_th_diff(ifn,il4,cparams.conc_il12, hill = cparams.hill_1, half_saturation = cparams.half_saturation)
-        p2 = p_th_diff(ifn,il4,cparams.conc_il12, hill = cparams.hill_2, half_saturation = cparams.half_saturation)
+        # calculate branching probabilities based on cytokine concentrations
+        p1 = p_th_diff(ifn, il4, cparams.conc_il12, hill = hill_1, half_saturation = half_saturation)
+        p2 = p_th_diff(ifn, il4, cparams.conc_il12, hill = hill_2, half_saturation = half_saturation)
         
         probs = p_norm(p1,p2)
-        #print cells.shape
-        #print cell_j.shape
+
         for idx, cell in enumerate(cell_j):
-            # is there a cell fate switch?
-            #print cell.shape
+            
+            # get random numbers calculated above for each cell
             n_rnd_1 = numbers_rnd_1[idx]
             fate_time = fate_times[idx]
+            
+            # check if there is a fate decision, by checking if cell is a naive cell 
+            # and check if time value is greater than random nr drawn from exp distr.
             if cell[0] == cparams.thn_idx and fate_time < t:
-                # calculate probabilities which fate to choose
+                # calculate probabilities which fate to choose and
                 # assign new cell fate
                 cell[0] = draw_fate(probs)
                 cell[1] = t
-                
+            
+            # for th1 precursor cells, if time value is greater than the
+            # time when cell fate was decided (cell[1]), check if fate change occurs
+            # by comparing with response time distribution
             if cell[0] == cparams.th1_0_idx and t > cell[1]:
                 if n_rnd_1 > cell[2]:
-                    cell[2] = cell[2]+(gamma_cdf(t_new-cell[1],cparams.alpha_th1,cparams.beta_th1)-gamma_cdf(t-cell[1],cparams.alpha_th1,cparams.beta_th1))
+                    cell[2] = cell[2]+(gamma_cdf(t_new-cell[1],alpha_th1,beta_th1)-gamma_cdf(t-cell[1],alpha_th1,beta_th1))
                 else:
                     cell[0] = cparams.th1_idx
                     
+            # for th2 precursor cells, if time value is greater than the
+            # time when cell fate was decided (cell[1]), check if fate change occurs
+            # by comparing with response time distribution                    
             if cell[0] == cparams.th2_0_idx and t > cell[1]:
                 if n_rnd_1 > cell[2]:
-                    cell[2] = cell[2]+(gamma_cdf(t_new-cell[1],cparams.alpha_th2,cparams.beta_th2)-gamma_cdf(t-cell[1],cparams.alpha_th2,cparams.beta_th2))
+                    cell[2] = cell[2]+(gamma_cdf(t_new-cell[1],alpha_th2,beta_th2)-gamma_cdf(t-cell[1],alpha_th2,beta_th2))
                 else:
                     cell[0] = cparams.th2_idx
             
+            # update each cell for the next time step
             cells[idx,i+1,:] = cell
             
     return [cells, time]    

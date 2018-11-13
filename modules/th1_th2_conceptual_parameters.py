@@ -8,7 +8,7 @@ parameters for conceptual model simulation with equal means and all
 """
 import numpy as np
 #hill coefficients for probability of th1 differentiation
-k_th1_ifn = 0
+k_th1_ifn = 1
 k_th1_il4 = 0
 k_th1_il12 = 1
 
@@ -36,23 +36,22 @@ kd_il12 = 1.
 half_saturation = [kd_ifn, kd_il4, kd_il12]
 
 ### at some point I need to change this to cell densities
-initial_cells = 100000.
+initial_cells = 10000.
 
 #
 mean_th1 = 1.
 mean_th2 = 1.
-alpha_th1 = 10
+alpha_th1 = 1
 alpha_th2 = 1
 beta_th1 = alpha_th1/mean_th1
 beta_th2 = alpha_th2/mean_th2
-
 
 #
 degradation = 0
 # simulation time
 
 start = 0
-stop = 5
+stop = 8
 # watch out, method chain also takes stepsize as independent argument
 stepsize = .01
 simulation_time = np.arange(start, stop, stepsize)
@@ -65,6 +64,7 @@ parameters = [alpha_th1, alpha_th2, beta_th1, beta_th2, simulation_time,
 #==============================================================================
 # stochastic parameters 
 #==============================================================================
+chain_length_stoc = 10
 thn_idx = 0
 th1_0_idx = 1
 th2_0_idx = 2
@@ -73,6 +73,6 @@ th2_idx = 4
 
 precursor_rate = 1.
 
-nsteps = 1000
+nsteps = 2000
 ncells = int(initial_cells)
-nsim = 2
+nsim = 10
