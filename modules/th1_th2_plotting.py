@@ -158,7 +158,7 @@ def plot_il12(il12_array, xlabel = "IL-12 [pm]", factor_x_axis = 10**12, save = 
     if save != "no":
         fig.savefig(save_path+save+".svg", bbox_inches = "tight", dpi = 1200)
 
-def ax_il12(il12_array, ax, xlabel = "IL-12 [a.u.]", factor_x_axis = 1.):
+def ax_il12(il12_array, ax, xlabel = "IL-12 [a.u.]", factor_x_axis = 1.0, linestyle = "-"):
     """
     return axes object for il12 dependency
     """
@@ -167,8 +167,8 @@ def ax_il12(il12_array, ax, xlabel = "IL-12 [a.u.]", factor_x_axis = 1.):
     th1_conc = il12_array[1]
     th2_conc = il12_array[2]
     
-    ax.plot(il12_conc_pm, th1_conc, "tab:blue")
-    ax.plot(il12_conc_pm, th2_conc, "tab:red")
+    ax.plot(il12_conc_pm, th1_conc, "tab:blue", linestyle = linestyle)
+    ax.plot(il12_conc_pm, th2_conc, "tab:red", linestyle = linestyle)
     ax.set_xlabel(xlabel)
     ax.set_yticks([0,50,100])
     #ax.set_title("Effect of IL-12 conc. on Th cell balance after 3 hours")
@@ -176,14 +176,14 @@ def ax_il12(il12_array, ax, xlabel = "IL-12 [a.u.]", factor_x_axis = 1.):
     ax.set_xlim([il12_conc_pm[0],il12_conc_pm[-1]])
     
     #ax.set_ylabel("% Th cells after")
-def ax_feedback_tau(cytokine_conc_arr, ax, xlabel = "rate IFNg", ylabel = r"$\tau_{1/2}$"):
+def ax_feedback_tau(cytokine_conc_arr, ax, xlabel = "IFNg [a.u.]", ylabel = r"$\tau_{1/2}$", linestyle = "-"):
     x_values = cytokine_conc_arr[0]
     #th1_conc = chain_array[1]
     #th2_conc = chain_array[2]
     th1_tau = cytokine_conc_arr[3]
     th2_tau = cytokine_conc_arr[4]   
-    ax.plot(x_values, th1_tau, "tab:blue")
-    ax.plot(x_values, th2_tau, "tab:red")
+    ax.plot(x_values, th1_tau, "tab:blue", linestyle = linestyle)
+    ax.plot(x_values, th2_tau, "tab:red", linestyle = linestyle)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     #ax[1].set_ylim([0,50])

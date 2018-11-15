@@ -67,4 +67,26 @@ plt.tight_layout()
 sns.set_style("ticks")
 #fig.savefig(save_path+"th1_th2_mixed_model.svg", bbox_inches = "tight")
 
+il12_conc = np.arange(0,2,0.01)
 
+il12_rate_arr = il12(il12_conc, rate_params)
+il12_rtm_arr = il12(il12_conc, rtm_params)
+
+il12_conc_tau = np.arange(0,0.2,0.001)
+
+fb_rate_arr = feedback_strength(il12_conc_tau, rate_params, cytokine_type = "IL12")
+fb_rtm_arr = feedback_strength(il12_conc_tau, rtm_params, cytokine_type = "IL12")
+
+
+
+fig, ax = plt.subplots(1,1, figsize = (5,4))
+ax_il12(il12_rate_arr, ax)
+ax_il12(il12_rtm_arr, ax, linestyle = "--")
+ax.set_ylabel("%Th cells in steady state")
+plt.tight_layout()
+
+fig, ax = plt.subplots(1,1, figsize = (5,4))
+ax_feedback_tau(fb_rate_arr, ax)
+ax_feedback_tau(fb_rtm_arr, ax, linestyle = "--")
+#ax.set_ylabel("%Th cells in steady state")
+plt.tight_layout()
