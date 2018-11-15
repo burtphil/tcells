@@ -176,4 +176,15 @@ def ax_il12(il12_array, ax, xlabel = "IL-12 [a.u.]", factor_x_axis = 1.):
     ax.set_xlim([il12_conc_pm[0],il12_conc_pm[-1]])
     
     #ax.set_ylabel("% Th cells after")
-    
+def ax_feedback_tau(cytokine_conc_arr, ax, xlabel = "rate IFNg", ylabel = r"$\tau_{1/2}$"):
+    x_values = cytokine_conc_arr[0]
+    #th1_conc = chain_array[1]
+    #th2_conc = chain_array[2]
+    th1_tau = cytokine_conc_arr[3]
+    th2_tau = cytokine_conc_arr[4]   
+    ax.plot(x_values, th1_tau, "tab:blue")
+    ax.plot(x_values, th2_tau, "tab:red")
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    #ax[1].set_ylim([0,50])
+    ax.set_xlim([x_values[0], x_values[-1]])

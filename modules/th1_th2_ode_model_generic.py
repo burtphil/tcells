@@ -381,6 +381,7 @@ def il12(il12_conc, parameters):
     th2_conc = []
     th0_conc = []
     
+    
     norm = parameters[-2]/100
     for i in il12_conc:
         
@@ -402,4 +403,52 @@ def il12(il12_conc, parameters):
     th2_conc = np.asarray(th2_conc)/norm
     
     return [il12_conc, th1_conc, th2_conc]
-  
+
+def feedback_strength(cytokine_rate, parameters, cytokine_type = "IFNG"):
+    """
+    plot steady state dependency of il12
+    """
+    th1_conc = []
+    th2_conc = []
+    th0_conc = []
+    th1_tau = []
+    th2_tau = []
+    parameters = list(parameters)
+    
+    sim_time = parameters[4]
+    stepsize = sim_time[-1]/(len(sim_time)-1)
+    
+    if cytokine_type == "IL4":
+        idx = 9
+    elif cytokine_type == "IL12":
+        idx = 5
+    elif cytokine_type == "IFNG":
+        idx = 8
+    norm = parameters[-2]/100
+    
+    for i in cytokine_rate:       
+        parameters[idx] = i        
+        state = run_model("", parameters)
+        
+        th0_endstate = state[-1,0]
+        th0_conc.append(th0_endstate)
+            
+        th1_endstate = state[-1,int(parameters[0])+1]
+        th1_conc.append(th1_endstate)
+        
+        th2_endstate = state[-1,-1]
+        th2_conc.append(th2_endstate)
+        
+        th1_halfmax = th1_endstate/2
+        th2_halfmax = th2_endstate/2
+        
+        th1_tau_idx = find_nearest(state[:,parameters[0]+1], th1_halfmax)*stepsize
+        th2_tau_idx = find_nearest(state[:,-1], th2_halfmax)*stepsize
+        th1_tau.append(th1_tau_idx)
+        th2_tau.append(th2_tau_idx)  
+        
+    th0_conc = np.asarray(th0_conc)/norm
+    th1_conc = np.asarray(th1_conc)/norm
+    th2_conc = np.asarray(th2_conc)/norm
+    
+    return [cytokine_rate, th1_conc, th2_conc, th1_tau, th2_tau]
