@@ -44,7 +44,7 @@ barplot.set_xlabel("% Th cells in steady state")
 plt.tight_layout()
 
 fig = barplot.get_figure()
-fig.savefig(save_path+"fb_effect_barplot.svg", bbox_inches = "tight")
+#fig.savefig(save_path+"fb_effect_barplot.svg", bbox_inches = "tight")
 
 
 #==============================================================================
@@ -78,4 +78,4 @@ plt.tight_layout()
 
 
 fig = barplot.get_figure()
-fig.savefig(save_path+"symmetry_effect_barplot.svg", bbox_inches = "tight")
+#fig.savefig(save_path+"symmetry_effect_barplot.svg", bbox_inches = "tight")

@@ -4,6 +4,8 @@
 Created on Thu Nov 15 11:42:41 2018
 
 @author: burt
+
+feedback strength vs tau and steady state
 """
 import numpy as np
 import os
@@ -42,7 +44,7 @@ ax.set_ylabel("%Th cells in steady state")
 ax.set_xlabel("IFNg [a.u.]")
 plt.tight_layout()
 sns.set_style("ticks")
-fig.savefig(save_path+fig_name+".svg", bbox_inches = "tight")
+#fig.savefig(save_path+fig_name+".svg", bbox_inches = "tight")
 
 fb_rate_arr = feedback_strength(il12_conc_tau, rate_params, cytokine_type = "IFNG")
 fb_rtm_arr = feedback_strength(il12_conc_tau, rtm_params, cytokine_type = "IFNG")
@@ -55,4 +57,4 @@ ax_feedback_tau(fb_rtm_arr, ax, linestyle = "--")
 plt.tight_layout()
 sns.set_style("ticks")
 ax.legend(["Th1","Th2"])
-fig.savefig(save_path+fig_name+"_tau.svg", bbox_inches = "tight")
+#fig.savefig(save_path+fig_name+"_tau.svg", bbox_inches = "tight")
