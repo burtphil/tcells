@@ -7,12 +7,7 @@ Created on Thu Sep 13 11:48:04 2018
 parameters for conceptual model simulation with equal means and all
 """
 import numpy as np
-#hill coefficients for probability of th1 differentiation
-k_th1_ifn = 0
-k_th1_il4 = 0
-k_th1_il12 = 1
 
-hill_1 = [k_th1_ifn, k_th1_il4, k_th1_il12]
 #==============================================================================
 # model params
 #==============================================================================
@@ -25,27 +20,38 @@ feedback = {
         "neg_th2" : [[0,0,1], [-1,0,0]],
         "pos_th2_neg_th2" : [[0,0,1],[-1,1,0]]
         }
+pos = 5.
+neg = 0.1
+neut = 1.
+il12 = 1.
 
-#hill coefficients for probability of th2 differentiation
-k_th2_ifn = 0
-k_th2_il4 = 0
-k_th2_il12 = 0
-
-hill_2 = [k_th2_ifn, k_th2_il4, k_th2_il12]
-
+feedback_new = {
+        "no_fb" : [[neut,neut,pos], [neut,neut,neut]],
+        "pos_neg_fb" : [[pos,neg,pos], [neg,pos,neut]],
+        "pos_th1" : [[pos,neut,pos], [neut,neut,neut]],
+        "pos_th2" : [[neut,neut,pos], [neut,pos,neut]], 
+        "neg_th1" : [[neut,neg,pos],[neut,neut,neut]],
+        "neg_th2" : [[neut,neut,pos], [neg,neut,neut]],
+        "pos_th2_neg_th2" : [[neut,neut,pos],[neg,pos,neut]]
+        }
 # extracellular il12 concentration
-conc_il12 = 1.0
+conc_il12 = 0
 
 #production rates cytokines
-rate_ifn = 0.1
-rate_il4 = 0.1
+rate_ifn = 0.01
+rate_il4 = 0.01
 
 # half saturation constants
-kd_ifn = 1.
-kd_il4 = 1.
-kd_il12 = 1.
+kd_ifn = 1.0
+kd_il4 = 1.0
+kd_il12 = 1.0
 
 half_saturation = [kd_ifn, kd_il4, kd_il12]
+
+# feedbacks
+fb_ifn = 1.0
+fb_il4 = 1.0
+fb_il12 = 1.0
 
 ### at some point I need to change this to cell densities
 initial_cells = 10000.
@@ -58,35 +64,21 @@ alpha_th2 = 1
 beta_th1 = alpha_th1/mean_th1
 beta_th2 = alpha_th2/mean_th2
 
-#
+alpha_th1_rtm = 10
+alpha_th2_rtm = 10
+beta_th1_rtm = 10.
+beta_th2_rtm = 10.
+
 degradation = 0
 #==============================================================================
 # simulation time
 #==============================================================================
 start = 0
-stop = 5
+stop = 6
 # watch out, method chain also takes stepsize as independent argument
 stepsize = .01
 simulation_time = np.arange(start, stop, stepsize)
 
-
-
-parameters = [alpha_th1, alpha_th2, beta_th1, beta_th2, simulation_time,
-              conc_il12, hill_1, hill_2, rate_ifn, rate_il4, half_saturation,
-              initial_cells, degradation]
-
-
-rate_params = [alpha_th1, alpha_th2, beta_th1, beta_th2, simulation_time,
-              conc_il12, hill_1, hill_2, rate_ifn, rate_il4, half_saturation,
-              initial_cells, degradation]
-
-alpha_th1_rtm = 10
-alpha_th2_rtm = 10
-beta_th1_rtm = 10.
-beta_th2_rtm = 10.
-rtm_params = [alpha_th1_rtm, alpha_th2_rtm, beta_th1_rtm, beta_th2_rtm, simulation_time,
-              conc_il12, hill_1, hill_2, rate_ifn, rate_il4, half_saturation,
-              initial_cells, degradation]
 #==============================================================================
 # stochastic parameters 
 #==============================================================================

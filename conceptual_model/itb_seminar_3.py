@@ -13,7 +13,7 @@ import pandas as pd
 
 save_path = "/home/burt/Documents/tcell_project/figures/"
 
-y = [
+x = [
      "both_rate",
      "both_rtm",
      "fb_rate",
@@ -33,19 +33,19 @@ Th2 = [
        25,
        ]
 
-data = {"y" : y, "Th1" : Th1, "Th2" : Th2}
+data = {"x" : x, "Th1" : Th1, "Th2" : Th2}
 
 df = pd.DataFrame(data)
-df = pd.melt(df, id_vars=['y'], value_vars=['Th1', 'Th2'])
+df = pd.melt(df, id_vars=['x'], value_vars=['Th1', 'Th2'])
 
-barplot = sns.barplot(data = df, y = "y", x = "value", hue = "variable", palette = ["tab:blue", "tab:red"])
+barplot = sns.barplot(data = df, x = "x", y = "value", hue = "variable", palette = ["tab:blue", "tab:red"])
 sns.set(style="white", context="talk")
 barplot.set_xlabel("% Th cells in steady state")
 plt.tight_layout()
 
 fig = barplot.get_figure()
 #fig.savefig(save_path+"fb_effect_barplot.svg", bbox_inches = "tight")
-
+"""
 
 #==============================================================================
 # plot the "faster feedback wins" situation 
@@ -79,3 +79,4 @@ plt.tight_layout()
 
 fig = barplot.get_figure()
 #fig.savefig(save_path+"symmetry_effect_barplot.svg", bbox_inches = "tight")
+"""

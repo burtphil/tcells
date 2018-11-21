@@ -16,7 +16,7 @@ def find_nearest(array, value):
     idx = (np.abs(array - value)).argmin()
     return idx
 
-def p_th_diff(conc_ifn,conc_il4,conc_il12, hill, half_saturation, strength = 1.0):
+def p_th_diff(conc_ifn,conc_il4,conc_il12, hill, half_saturation, fb_ifn, fb_il4, fb_il12):
     """
     returns probability of Th1 Th2 differentiation for given cytokine concentrations
     kinetics are hill-like so hill coefficients for cytokines also need to be provided
@@ -31,13 +31,13 @@ def p_th_diff(conc_ifn,conc_il4,conc_il12, hill, half_saturation, strength = 1.0
     il4_prob = (conc_il4/half_saturation[1])**hill[1]
     il12_prob = (conc_il12/half_saturation[2])**hill[2]
 
-    prob_th_diff = strength*ifn_prob*il4_prob*il12_prob
+    prob_th_diff = ifn_prob*il4_prob*il12_prob
     
     assert prob_th_diff >= 0, "probability is "+str(prob_th_diff)+" must be non-negative."
     
     return prob_th_diff
 
-def p_menten(conc_ifn,conc_il4,conc_il12, hill, half_saturation,  strength = 1.):
+def p_menten(conc_ifn, conc_il4, conc_il12, hill, half_saturation, fb_ifn, fb_il4, fb_il12):
     """
     returns probability of Th1 Th2 differentiation for given cytokine concentrations
     kinetics are hill-like so hill coefficients for cytokines also need to be provided
@@ -48,46 +48,81 @@ def p_menten(conc_ifn,conc_il4,conc_il12, hill, half_saturation,  strength = 1.)
     
     # watch out, this is tricky because if concentrations are zero and negative feedback (hill coeff < 0)
     # then you divide by zero, best avoid zero concentrations through base cytokine rate
-    cytokine = np.array([conc_ifn,conc_il4, conc_il12])
+    cytokine = np.array([conc_ifn, conc_il4, conc_il12])
+    fb_strength = np.array([fb_ifn, fb_il4, fb_il12])
     hill = np.array(hill)
     half_saturation = np.array(half_saturation)
-    menten = cytokine**hill/(half_saturation+cytokine**hill)
-    prob_th_diff = strength*np.prod(menten)
+    menten = fb_strength * (cytokine**hill / (half_saturation + cytokine**hill))
+    prob_th_diff = np.prod(menten)
     
     assert prob_th_diff >= 0, "probability is "+str(prob_th_diff)+" must be non-negative."
     
     return prob_th_diff
 
+def p_new(conc_ifn, conc_il4, conc_il12, hill, half_saturation, fb_ifn, fb_il4, fb_il12):
 
+    assert conc_ifn >= 0, "ifn conc is "+str(conc_ifn)+", concentrations must be non-negative."
+    assert conc_il4 >= 0, "il4 conc is "+str(conc_il4)+", concentrations must be non-negative."
+    assert conc_il12 >= 0, "il12conc is "+str(conc_il12)+", concentrations must be non-negative."
+    
+    # watch out, this is tricky because if concentrations are zero and negative feedback (hill coeff < 0)
+    # then you divide by zero, best avoid zero concentrations through base cytokine rate
 
-def th_cell_diff(state,t,alpha_1,alpha_2,rate1,rate2,conc_il12, hill_1, hill_2, 
-                 rate_ifn, rate_il4, half_saturation, degradation, const_thn = False,
-                 fun_probability = p_th_diff):
+    ifn_prob = (hill[0] * conc_ifn + 1) / (conc_ifn + 1)
+    il4_prob = (hill[1] * conc_il4 + 1) / (conc_il4 + 1)
+    il12_prob = (hill[2] * conc_il12 + 1) / (conc_il12 + 1)    
+    
+    prob_th_diff = ifn_prob*il4_prob*il12_prob
+    assert prob_th_diff >= 0, "probability is "+str(prob_th_diff)+" must be non-negative."
+    return prob_th_diff
+     
+def th_cell_diff(state,
+                 t,
+                 alpha_1,
+                 alpha_2,
+                 beta_1,
+                 beta_2,
+                 conc_il12,
+                 hill_1,
+                 hill_2, 
+                 rate_ifn,
+                 rate_il4,
+                 half_saturation,
+                 degradation,
+                 fb_ifn,
+                 fb_il4,
+                 fb_il12,
+                 const_thn = False,
+                 fun_probability = p_new
+                 ):
         
     # calculate interferon gamma (ifn) and il4 concentrations based on the number of th1 and th2 cells
     assert type(alpha_1) == int, "alpha dtype is "+str(type(alpha_1))+" but alpha must be an integer."
     assert type(alpha_2) == int, "alpha dtype is "+str(type(alpha_2))+" but alpha must be an integer."
         
 
-    conc_ifn = rate_ifn*state[alpha_1+1]+half_saturation[0]
-    conc_il4 = rate_il4*state[-1]+half_saturation[1]
-
-    ### calculate initial th1 and th2 populations from naive cells based on branching probabilities
+    if fun_probability == p_new:
+        conc_ifn = rate_ifn*state[alpha_1+1]
+        conc_il4 = rate_il4*state[-1]
+        #print conc_il4, conc_ifn
     
-    th_0 = state[0]
-    
+    else:
+        conc_ifn = rate_ifn*state[alpha_1+1] + half_saturation[0]
+        conc_il4 = rate_il4*state[-1] + half_saturation[1]
+    ### calculate initial th1 and th2 populations from naive cells based on branching probabilities    
+    th_0 = state[0]    
     if t<1:   
         assert th_0 > 0, "no initial cells provided or cells"
     
     # branching probablities
-    prob_th1 = fun_probability(conc_ifn,conc_il4,conc_il12, hill_1, half_saturation)
-    prob_th2 = fun_probability(conc_ifn,conc_il4,conc_il12, hill_2, half_saturation)    
+    prob_th1 = fun_probability(conc_ifn, conc_il4, conc_il12, hill_1, half_saturation, fb_ifn, fb_il4, fb_il12)
+    prob_th2 = fun_probability(conc_ifn, conc_il4, conc_il12, hill_2, half_saturation, fb_ifn, fb_il4, fb_il12)    
     assert prob_th1+prob_th2 > 0, "prob th1="+str(prob_th1)+" prob th2="+str(prob_th2)+" cannot normalize."
 
     # normalized branching probabilities
-    p_1 = prob_th1/(prob_th1+prob_th2)
-    p_2 = prob_th2/(prob_th1+prob_th2)
-    #print p_1
+    p_1 = prob_th1 / (prob_th1 + prob_th2)
+    p_2 = prob_th2 / (prob_th1 + prob_th2)
+
     # assign th1 states and th2 states from initial vector based on chain length alpha
     th1 = state[1:(alpha_1+2)]
     th2 = state[(alpha_1+2):]
@@ -97,8 +132,8 @@ def th_cell_diff(state,t,alpha_1,alpha_2,rate1,rate2,conc_il12, hill_1, hill_2,
         
     th_states = [th1,th2]
     dt_th_states = [dt_th1,dt_th2]
-    rate = [rate1,rate2]
-    prob = [p_1,p_2]
+    rate = [beta_1, beta_2]
+    prob = [p_1, p_2]
         
     ### differential equations depending on the number on intermediary states
     # loop over states of th1 and th2 cells
@@ -111,11 +146,11 @@ def th_cell_diff(state,t,alpha_1,alpha_2,rate1,rate2,conc_il12, hill_1, hill_2,
     # calculate derivatives
         for j in range(len(th_state)):
             if j == 0:
-                dt_state[j] = p*th_0-r*th_state[j]
+                dt_state[j] = p * th_0 - r * th_state[j]
             elif j != (len(th_state)-1):
-                dt_state[j] = r*(th_state[j-1]-th_state[j])
+                dt_state[j] = r * (th_state[j-1] - th_state[j])
             else:
-                dt_state[j] = r*th_state[j-1]-degradation*th_state[j]
+                dt_state[j] = r * th_state[j-1] - degradation * th_state[j]
 
     # assign new number of naive cells based on the number of present naive cells that were designated th1_0 or th2_0
     # if a constant Th naive cell pool is assumed (default parameter const_thn = True) then change should be 0
@@ -126,329 +161,357 @@ def th_cell_diff(state,t,alpha_1,alpha_2,rate1,rate2,conc_il12, hill_1, hill_2,
     else:
         dt_th0 = 0
    # return cell states
-    dt_state = np.concatenate(([dt_th0],dt_th1,dt_th2))
+    dt_state = np.concatenate(([dt_th0], dt_th1, dt_th2))
     
     assert np.isnan(dt_state).any() == False, "nans detected in dt_state array."
     
     return dt_state  
 
 
-def run_model(title, parameters, model_name = th_cell_diff, save = True):
+def run_model(alpha_1,
+              alpha_2,
+              beta_1,
+              beta_2,
+              simulation_time,
+              conc_il12,
+              hill_1,
+              hill_2,
+              rate_ifn,
+              rate_il4,
+              half_saturation,
+              initial_cells,
+              degradation,
+              fb_ifn,
+              fb_il4,
+              fb_il12,
+              ):
     """ 
     run ode model with parameters from params file
     needs shape and rate params as input as well as simulation time
     """
-    (alpha_1, alpha_2, rate1, rate2, simulation_time, conc_il12, hill_1, hill_2,
-     rate_ifn, rate_il4, half_saturation, initial_cells, degradation) = parameters
-
     # define initial conditions based on number of intermediary states
-    no_of_states = int(alpha_1+alpha_2+3)
+    no_of_states = int(alpha_1 + alpha_2 + 3)
     ini_cond = np.zeros(no_of_states)
     ini_cond[0] = initial_cells
     
-    state = odeint(model_name, ini_cond, simulation_time, 
-                   args =(alpha_1,alpha_2,rate1,rate2,conc_il12, hill_1,hill_2,
-                          rate_ifn,rate_il4,half_saturation, degradation))
+    #hill_coeff = feedback_dict[feedback_type]
+    #hill_1 = hill_coeff[0]
+    #hill_2 = hill_coeff[1]
     
-    # save both model simulation and associated parameters
-    if save == True:
-        parameters = np.asarray(parameters, dtype = object)
-        np.savez(title, state = state, parameters = parameters)
+    state = odeint(th_cell_diff, ini_cond, simulation_time, 
+                   args = (alpha_1, alpha_2, beta_1, beta_2, conc_il12, hill_1, hill_2,
+                          rate_ifn, rate_il4, half_saturation, degradation,
+                          fb_ifn, fb_il4, fb_il12))
 
     return state
 
-def chain(chain_length, parameters, stepsize = 0.01):
+def chain(chain_length,
+          alpha_1,
+          alpha_2,
+          beta_1,
+          beta_2,
+          simulation_time,
+          conc_il12,
+          hill_1,
+          hill_2,
+          rate_ifn,
+          rate_il4,
+          half_saturation,
+          initial_cells,
+          degradation,
+          fb_ifn,
+          fb_il4,
+          fb_il12,
+          stepsize = 0.01,
+          ):
     """
     plot steady state and tau 1/2 dependency on chain length
     watch out for the step size
     """
-    chain = np.arange(1,chain_length,1)
     
-    mean_th1 = parameters[0]/parameters[2]
-    mean_th2 = parameters[1]/parameters[3]
+    mean_th1 = alpha_1 / float(beta_1)
+    mean_th2 = alpha_2 / float(beta_2)
     
     th1_conc = []
-    th2_conc = []
-    
+    th2_conc = []    
     th1_tau = []
     th2_tau = []
     
-    for i in chain:
+    for i in range(1, chain_length):       
+        alpha_1 = i
+        alpha_2 = i
+        beta_1 = i / mean_th1
+        beta_2 = i / mean_th2
         
-        i = int(i)
-        parameters[0] = i
-        parameters[1] = i
-        parameters[2] = i/mean_th1
-        parameters[3] = i/mean_th2
-        
-        state = run_model("", parameters, save = False)
+        state = run_model(alpha_1,
+                          alpha_2,
+                          beta_1,
+                          beta_2,
+                          simulation_time,
+                          conc_il12,
+                          hill_1,
+                          hill_2,
+                          rate_ifn,
+                          rate_il4,
+                          half_saturation,
+                          initial_cells,
+                          degradation,
+                          fb_ifn,
+                          fb_il4,
+                          fb_il12,
+                          )
         #plot_time_course(state, alpha_1, alpha_2, simulation_time)
     
         # get end states
-        th1_endstate = state[-1,int(i)+1]
+        th1_endstate = state[-1, i+1]
         th1_conc.append(th1_endstate)
         
-        th2_endstate = state[-1,-1]
+        th2_endstate = state[-1, -1]
         th2_conc.append(th2_endstate)
         
-        th1_halfmax = th1_endstate/2
-        th2_halfmax = th2_endstate/2
+        th1_halfmax = th1_endstate / 2
+        th2_halfmax = th2_endstate / 2
         
-        th1_tau_idx = find_nearest(state[:,int(i)+1], th1_halfmax)*stepsize
-        th2_tau_idx = find_nearest(state[:,-1], th2_halfmax)*stepsize
+        th1_tau_idx = find_nearest(state[:, i+1], th1_halfmax) * stepsize
+        th2_tau_idx = find_nearest(state[:,-1], th2_halfmax) * stepsize
         th1_tau.append(th1_tau_idx)
         th2_tau.append(th2_tau_idx)    
         # normalize to initial cell pop
     
-    norm = parameters[-2]/100
-    th1_conc = np.array(th1_conc)/norm
-    th2_conc = np.array(th2_conc)/norm
+    norm = initial_cells / 100
+    th1_conc = np.array(th1_conc) / norm
+    th2_conc = np.array(th2_conc) / norm
     
-    return [chain, th1_conc, th2_conc, th1_tau, th2_tau, chain_length]
+    return [th1_conc, th2_conc, th1_tau, th2_tau, chain_length]
 
-def chain_one(chain_length, parameters, alpha_idx, stepsize = 0.01):
-    """
-    plot steady state and tau 1/2 dependency on chain length
-    watch out for the step size
-    alpha_idx takes a tuple, the first index specifies which alpha is varied
-    set to 0 for th1 alpha variation and to 1 for th2 alpha variation
-    the second index sets the respective other alpha to the index value
-    this needs to be an integer
-    """
-    parameters = list(parameters)
-    chain = np.arange(1,chain_length,1)
-    
-    mean_th1 = parameters[0]/parameters[2]
-    mean_th2 = parameters[1]/parameters[3]
-    
-    th1_conc = []
-    th2_conc = []
-    
-    th1_tau = []
-    th2_tau = []
-    
-    for i in chain:
-        
-        i = int(i)
-        if alpha_idx[0] == 0:            
-            parameters[0] = i
-            parameters[2] = i/mean_th1
-            parameters[1] = alpha_idx[1]
-            parameters[3] = alpha_idx[1]/mean_th2
-
-        elif alpha_idx[0] == 1:
-            parameters[0] = alpha_idx[1]
-            parameters[2] = alpha_idx[1]/mean_th1                        
-            parameters[1] = i
-            parameters[3] = i/mean_th2
-        
-        state = run_model("", parameters, save = False)
-        #plot_time_course(state, alpha_1, alpha_2, simulation_time)
-    
-        # get end states
-        th1_endstate = state[-1,int(i)+1]
-        th1_conc.append(th1_endstate)
-        
-        th2_endstate = state[-1,-1]
-        th2_conc.append(th2_endstate)
-        
-        th1_halfmax = th1_endstate/2
-        th2_halfmax = th2_endstate/2
-        
-        th1_tau_idx = find_nearest(state[:,int(i)+1], th1_halfmax)*stepsize
-        th2_tau_idx = find_nearest(state[:,-1], th2_halfmax)*stepsize
-        th1_tau.append(th1_tau_idx)
-        th2_tau.append(th2_tau_idx)    
-        # normalize to initial cell pop
-    
-    norm = parameters[-2]/100
-    th1_conc = np.array(th1_conc)/norm
-    th2_conc = np.array(th2_conc)/norm
-    
-    return [chain, th1_conc, th2_conc, th1_tau, th2_tau, chain_length]
-
-def chain_th1(chain_length, parameters, stepsize = 0.01):
-    """
-    plot steady state and tau 1/2 dependency on chain length
-    watch out for the step size
-    alpha_idx takes a tuple, the first index specifies which alpha is varied
-    set to 0 for th1 alpha variation and to 1 for th2 alpha variation
-    the second index sets the respective other alpha to the index value
-    this needs to be an integer
-    """
-    parameters = list(parameters)
-    chain = np.arange(1,chain_length,1)
-    
-    mean_th1 = parameters[0]/parameters[2]
-    
-    th1_conc = []
-    th2_conc = []
-    
-    th1_tau = []
-    th2_tau = []
-    
-    for i in chain:
-        
-        i = int(i)
-        
-        parameters[0] = i
-        parameters[2] = i/mean_th1
-        #print parameters[1],parameters[3]
-        state = run_model("", parameters, save = False)
-        #fig, ax = plt.subplots(1,1, figsize = (5,5))
-        #ax.plot(parameters[4],state)
-        #ax.set_title(str(parameters[0])+", "+str(parameters[1]))
-        #plot_time_course(state, alpha_1, alpha_2, simulation_time)
-        
-        # get end states
-        th1_endstate = state[-1,int(i)+1]
-        th1_conc.append(th1_endstate)
-
-        th2_endstate = state[-1,-1]
-        th2_conc.append(th2_endstate)
-        
-        #print th1_endstate, th2_endstate
-        th1_halfmax = th1_endstate/2
-        th2_halfmax = th2_endstate/2
-        
-        th1_tau_idx = find_nearest(state[:,int(i)+1], th1_halfmax)*stepsize
-        th2_tau_idx = find_nearest(state[:,-1], th2_halfmax)*stepsize
-        th1_tau.append(th1_tau_idx)
-        th2_tau.append(th2_tau_idx)     
-        
-    norm = parameters[-2]/100
-    th1_conc = np.array(th1_conc)/norm
-    th2_conc = np.array(th2_conc)/norm
-    
-    return [chain, th1_conc, th2_conc, th1_tau, th2_tau, chain_length]
-
-def chain_th2(chain_length, parameters, stepsize = 0.01):
-    """
-    plot steady state and tau 1/2 dependency on chain length
-    watch out for the step size
-    alpha_idx takes a tuple, the first index specifies which alpha is varied
-    set to 0 for th1 alpha variation and to 1 for th2 alpha variation
-    the second index sets the respective other alpha to the index value
-    this needs to be an integer
-    """
-    parameters = list(parameters)
-    chain = np.arange(1,chain_length,1)
-    
-    mean_th2 = parameters[1]/parameters[3]
-    
-    th1_conc = []
-    th2_conc = []
-    
-    th1_tau = []
-    th2_tau = []
-
-    for i in chain:
-        
-        i = int(i)
-        parameters[1] = i
-        parameters[3] = i/mean_th2
-        
-        state = run_model("", parameters, save = False)
-        #plot_time_course(state, alpha_1, alpha_2, simulation_time)
-    
-        # get end states
-        th1_endstate = state[-1,parameters[0]+1]
-        th1_conc.append(th1_endstate)
-        
-        th2_endstate = state[-1,-1]
-        th2_conc.append(th2_endstate)
-        
-        th1_halfmax = th1_endstate/2
-        th2_halfmax = th2_endstate/2
-        
-        th1_tau_idx = find_nearest(state[:,parameters[0]+1], th1_halfmax)*stepsize
-        th2_tau_idx = find_nearest(state[:,-1], th2_halfmax)*stepsize
-        th1_tau.append(th1_tau_idx)
-        th2_tau.append(th2_tau_idx)    
-        # normalize to initial cell pop
-    
-    norm = parameters[-2]/100
-    th1_conc = np.array(th1_conc)/norm
-    th2_conc = np.array(th2_conc)/norm
-    
-    return [chain, th1_conc, th2_conc, th1_tau, th2_tau, chain_length]
-
-def il12(il12_conc, parameters):
+def il12(il12_conc,
+         alpha_1,
+         alpha_2,
+         beta_1,
+         beta_2,
+         simulation_time,
+         conc_il12,
+         hill_1,
+         hill_2,
+         rate_ifn,
+         rate_il4,
+         half_saturation,
+         initial_cells,
+         degradation,
+         fb_ifn,
+         fb_il4,
+         fb_il12,
+         ):
     """
     plot steady state dependency of il12
     """
     th1_conc = []
     th2_conc = []
     th0_conc = []
+    th1_tau = []
+    th2_tau = []
+    norm = initial_cells  / 100
+    stepsize = simulation_time[-1]/(len(simulation_time)-1)
     
-    
-    norm = parameters[-2]/100
     for i in il12_conc:
+        conc_il12 = i
+        state = run_model(alpha_1,
+                  alpha_2,
+                  beta_1,
+                  beta_2,
+                  simulation_time,
+                  conc_il12,
+                  hill_1,
+                  hill_2,
+                  rate_ifn,
+                  rate_il4,
+                  half_saturation,
+                  initial_cells,
+                  degradation,
+                  fb_ifn,
+                  fb_il4,
+                  fb_il12,
+                  )
         
-        parameters[5] = i
-        
-        state = run_model("", parameters)
-        
-        th0_endstate = state[-1,0]
+        th0_endstate = state[-1, 0]
         th0_conc.append(th0_endstate)
             
-        th1_endstate = state[-1,int(parameters[0])+1]
+        th1_endstate = state[-1, alpha_1+1]
         th1_conc.append(th1_endstate)
         
-        th2_endstate = state[-1,-1]
-        th2_conc.append(th2_endstate)
-        
-    th0_conc = np.asarray(th0_conc)/norm
-    th1_conc = np.asarray(th1_conc)/norm
-    th2_conc = np.asarray(th2_conc)/norm
-    
-    return [il12_conc, th1_conc, th2_conc]
-
-def feedback_strength(cytokine_rate, parameters, cytokine_type = "IFNG"):
-    """
-    plot steady state dependency of il12
-    """
-    th1_conc = []
-    th2_conc = []
-    th0_conc = []
-    th1_tau = []
-    th2_tau = []
-    parameters = list(parameters)
-    
-    sim_time = parameters[4]
-    stepsize = sim_time[-1]/(len(sim_time)-1)
-    
-    if cytokine_type == "IL4":
-        idx = 9
-    elif cytokine_type == "IL12":
-        idx = 5
-    elif cytokine_type == "IFNG":
-        idx = 8
-    norm = parameters[-2]/100
-    
-    for i in cytokine_rate:       
-        parameters[idx] = i        
-        state = run_model("", parameters)
-        
-        th0_endstate = state[-1,0]
-        th0_conc.append(th0_endstate)
-            
-        th1_endstate = state[-1,int(parameters[0])+1]
-        th1_conc.append(th1_endstate)
-        
-        th2_endstate = state[-1,-1]
+        th2_endstate = state[-1, -1]
         th2_conc.append(th2_endstate)
         
         th1_halfmax = th1_endstate/2
-        th2_halfmax = th2_endstate/2
-        
-        th1_tau_idx = find_nearest(state[:,parameters[0]+1], th1_halfmax)*stepsize
-        th2_tau_idx = find_nearest(state[:,-1], th2_halfmax)*stepsize
+        th2_halfmax = th2_endstate/2        
+        th1_tau_idx = find_nearest(state[:, alpha_1 + 1], th1_halfmax) * stepsize
+        th2_tau_idx = find_nearest(state[:, -1], th2_halfmax) * stepsize
         th1_tau.append(th1_tau_idx)
         th2_tau.append(th2_tau_idx)  
         
-    th0_conc = np.asarray(th0_conc)/norm
-    th1_conc = np.asarray(th1_conc)/norm
-    th2_conc = np.asarray(th2_conc)/norm
+    th0_conc = np.asarray(th0_conc) / norm
+    th1_conc = np.asarray(th1_conc) / norm
+    th2_conc = np.asarray(th2_conc) / norm
     
-    return [cytokine_rate, th1_conc, th2_conc, th1_tau, th2_tau]
+    return [il12_conc, th1_conc, th2_conc, th1_tau, th2_tau]
+
+def hilli_sym(il12_conc,
+         alpha_1,
+         alpha_2,
+         beta_1,
+         beta_2,
+         simulation_time,
+         conc_il12,
+         hill_1,
+         hill_2,
+         rate_ifn,
+         rate_il4,
+         half_saturation,
+         initial_cells,
+         degradation,
+         fb_ifn,
+         fb_il4,
+         fb_il12,
+         ):
+    """
+    plot steady state dependency of il12
+    """
+    th1_conc = []
+    th2_conc = []
+    th0_conc = []
+    th1_tau = []
+    th2_tau = []
+    norm = initial_cells  / 100
+    stepsize = simulation_time[-1]/(len(simulation_time)-1)
+    
+    for i in il12_conc:
+        hill_2[1] = i
+        state = run_model(alpha_1,
+                  alpha_2,
+                  beta_1,
+                  beta_2,
+                  simulation_time,
+                  conc_il12,
+                  hill_1,
+                  hill_2,
+                  rate_ifn,
+                  rate_il4,
+                  half_saturation,
+                  initial_cells,
+                  degradation,
+                  fb_ifn,
+                  fb_il4,
+                  fb_il12,
+                  )
+        
+        th0_endstate = state[-1, 0]
+        th0_conc.append(th0_endstate)
+            
+        th1_endstate = state[-1, alpha_1+1]
+        th1_conc.append(th1_endstate)
+        
+        th2_endstate = state[-1, -1]
+        th2_conc.append(th2_endstate)
+        
+        th1_halfmax = th1_endstate/2
+        th2_halfmax = th2_endstate/2        
+        th1_tau_idx = find_nearest(state[:, alpha_1 + 1], th1_halfmax) * stepsize
+        th2_tau_idx = find_nearest(state[:, -1], th2_halfmax) * stepsize
+        th1_tau.append(th1_tau_idx)
+        th2_tau.append(th2_tau_idx)  
+        
+    th0_conc = np.asarray(th0_conc) / norm
+    th1_conc = np.asarray(th1_conc) / norm
+    th2_conc = np.asarray(th2_conc) / norm
+    
+    return [il12_conc, th1_conc, th2_conc, th1_tau, th2_tau]
+
+def hilli_pos_th1(il12_conc,
+         alpha_1,
+         alpha_2,
+         beta_1,
+         beta_2,
+         simulation_time,
+         conc_il12,
+         hill_1,
+         hill_2,
+         rate_ifn,
+         rate_il4,
+         half_saturation,
+         initial_cells,
+         degradation,
+         fb_ifn,
+         fb_il4,
+         fb_il12,
+         ):
+    """
+    plot steady state dependency of il12
+    """
+    th1_conc = []
+    th2_conc = []
+    th0_conc = []
+    th1_tau = []
+    th2_tau = []
+    norm = initial_cells  / 100
+    stepsize = simulation_time[-1]/(len(simulation_time)-1)
+    
+    for i in il12_conc:
+        hill_1[0] = i
+        state = run_model(alpha_1,
+                  alpha_2,
+                  beta_1,
+                  beta_2,
+                  simulation_time,
+                  conc_il12,
+                  hill_1,
+                  hill_2,
+                  rate_ifn,
+                  rate_il4,
+                  half_saturation,
+                  initial_cells,
+                  degradation,
+                  fb_ifn,
+                  fb_il4,
+                  fb_il12,
+                  )
+        
+        th0_endstate = state[-1, 0]
+        th0_conc.append(th0_endstate)
+            
+        th1_endstate = state[-1, alpha_1+1]
+        th1_conc.append(th1_endstate)
+        
+        th2_endstate = state[-1, -1]
+        th2_conc.append(th2_endstate)
+        
+        th1_halfmax = th1_endstate/2
+        th2_halfmax = th2_endstate/2        
+        th1_tau_idx = find_nearest(state[:, alpha_1 + 1], th1_halfmax) * stepsize
+        th2_tau_idx = find_nearest(state[:, -1], th2_halfmax) * stepsize
+        th1_tau.append(th1_tau_idx)
+        th2_tau.append(th2_tau_idx)  
+        
+    th0_conc = np.asarray(th0_conc) / norm
+    th1_conc = np.asarray(th1_conc) / norm
+    th2_conc = np.asarray(th2_conc) / norm
+    
+    return [il12_conc, th1_conc, th2_conc, th1_tau, th2_tau]
+
+def get_readouts(state, alpha, initial_cells, simulation_time):
+
+    stepsize = simulation_time[-1] / (len(simulation_time) - 1)       
+    th1_endstate = state[-1, alpha + 1]       
+    th2_endstate = state[-1, -1]
+    
+    th1_halfmax = th1_endstate / 2
+    th2_halfmax = th2_endstate / 2        
+    th1_tau = find_nearest(state[:, alpha + 1], th1_halfmax) * stepsize
+    th2_tau = find_nearest(state[:, -1], th2_halfmax) * stepsize
+    
+    norm = initial_cells / 100      
+    th1_endstate = np.asarray(th1_endstate) / norm
+    th2_endstate = np.asarray(th2_endstate) / norm
+
+    return [th1_endstate, th2_endstate, th1_tau, th2_tau]
+    
+    
