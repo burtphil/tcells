@@ -92,8 +92,10 @@ def th_cell_diff(state,
                  fb_ifn,
                  fb_il4,
                  fb_il12,
+                 fb_start,
+                 fb_end,
                  const_thn = False,
-                 fun_probability = p_new
+                 fun_probability = p_new,
                  ):
         
     # calculate interferon gamma (ifn) and il4 concentrations based on the number of th1 and th2 cells
@@ -115,14 +117,18 @@ def th_cell_diff(state,
         assert th_0 > 0, "no initial cells provided or cells"
     
     # branching probablities
-    prob_th1 = fun_probability(conc_ifn, conc_il4, conc_il12, hill_1, half_saturation, fb_ifn, fb_il4, fb_il12)
-    prob_th2 = fun_probability(conc_ifn, conc_il4, conc_il12, hill_2, half_saturation, fb_ifn, fb_il4, fb_il12)    
-    assert prob_th1+prob_th2 > 0, "prob th1="+str(prob_th1)+" prob th2="+str(prob_th2)+" cannot normalize."
-
-    # normalized branching probabilities
-    p_1 = prob_th1 / (prob_th1 + prob_th2)
-    p_2 = prob_th2 / (prob_th1 + prob_th2)
-
+    if fb_start <= t <= fb_end:
+        prob_th1 = fun_probability(conc_ifn, conc_il4, conc_il12, hill_1, half_saturation, fb_ifn, fb_il4, fb_il12)
+        prob_th2 = fun_probability(conc_ifn, conc_il4, conc_il12, hill_2, half_saturation, fb_ifn, fb_il4, fb_il12)    
+        assert prob_th1+prob_th2 > 0, "prob th1="+str(prob_th1)+" prob th2="+str(prob_th2)+" cannot normalize."
+    
+        # normalized branching probabilities
+        p_1 = prob_th1 / (prob_th1 + prob_th2)
+        p_2 = prob_th2 / (prob_th1 + prob_th2)
+    
+    else:
+        p_1 = 0.5
+        p_2 = 0.5
     # assign th1 states and th2 states from initial vector based on chain length alpha
     th1 = state[1:(alpha_1+2)]
     th2 = state[(alpha_1+2):]
@@ -184,6 +190,8 @@ def run_model(alpha_1,
               fb_ifn,
               fb_il4,
               fb_il12,
+              fb_start,
+              fb_end
               ):
     """ 
     run ode model with parameters from params file
@@ -201,7 +209,7 @@ def run_model(alpha_1,
     state = odeint(th_cell_diff, ini_cond, simulation_time, 
                    args = (alpha_1, alpha_2, beta_1, beta_2, conc_il12, hill_1, hill_2,
                           rate_ifn, rate_il4, half_saturation, degradation,
-                          fb_ifn, fb_il4, fb_il12))
+                          fb_ifn, fb_il4, fb_il12, fb_start, fb_end))
 
     return state
 
@@ -222,6 +230,8 @@ def chain(chain_length,
           fb_ifn,
           fb_il4,
           fb_il12,
+          fb_start,
+          fb_end,
           stepsize = 0.01,
           ):
     """
@@ -259,6 +269,8 @@ def chain(chain_length,
                           fb_ifn,
                           fb_il4,
                           fb_il12,
+                          fb_start,
+                          fb_end,
                           )
         #plot_time_course(state, alpha_1, alpha_2, simulation_time)
     
@@ -301,6 +313,8 @@ def il12(il12_conc,
          fb_ifn,
          fb_il4,
          fb_il12,
+         fb_start,
+         fb_end,
          ):
     """
     plot steady state dependency of il12
@@ -331,6 +345,8 @@ def il12(il12_conc,
                   fb_ifn,
                   fb_il4,
                   fb_il12,
+                  fb_start,
+                  fb_end,
                   )
         
         th0_endstate = state[-1, 0]
@@ -372,6 +388,8 @@ def hilli_sym(il12_conc,
          fb_ifn,
          fb_il4,
          fb_il12,
+         fb_start,
+         fb_end,
          ):
     """
     plot steady state dependency of il12
@@ -402,6 +420,8 @@ def hilli_sym(il12_conc,
                   fb_ifn,
                   fb_il4,
                   fb_il12,
+                  fb_start,
+                  fb_end,
                   )
         
         th0_endstate = state[-1, 0]
@@ -443,6 +463,8 @@ def hilli_pos_th1(il12_conc,
          fb_ifn,
          fb_il4,
          fb_il12,
+         fb_start,
+         fb_end,
          ):
     """
     plot steady state dependency of il12
@@ -473,6 +495,8 @@ def hilli_pos_th1(il12_conc,
                   fb_ifn,
                   fb_il4,
                   fb_il12,
+                  fb_start,
+                  fb_end,
                   )
         
         th0_endstate = state[-1, 0]

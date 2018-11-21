@@ -53,6 +53,7 @@ fb_ifn = 1.0
 fb_il4 = 1.0
 fb_il12 = 1.0
 
+
 ### at some point I need to change this to cell densities
 initial_cells = 10000.
 
@@ -64,10 +65,10 @@ alpha_th2 = 1
 beta_th1 = alpha_th1/mean_th1
 beta_th2 = alpha_th2/mean_th2
 
-alpha_th1_rtm = 10
-alpha_th2_rtm = 10
-beta_th1_rtm = 10.
-beta_th2_rtm = 10.
+alpha_th1_rtm = 20
+alpha_th2_rtm = 20
+beta_th1_rtm = 20.
+beta_th2_rtm = 20.
 
 degradation = 0
 #==============================================================================
@@ -79,6 +80,8 @@ stop = 6
 stepsize = .01
 simulation_time = np.arange(start, stop, stepsize)
 
+fb_start = 0
+fb_end = stop
 #==============================================================================
 # stochastic parameters 
 #==============================================================================
