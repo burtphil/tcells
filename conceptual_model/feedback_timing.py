@@ -21,8 +21,8 @@ import matplotlib.image as mpimg
 os.chdir("/home/burt/Documents/code/th_cell_differentiation")
 
 ### run_model takes default parameters stored in th1_th2_parameters.py
-from modules.th1_th2_ode_model_generic import run_model
-from modules.th1_th2_plotting import ax_time_course, ax_il12, ax_chain
+from modules.th1_th2_ode_model_generic import run_model, feedback_timing
+from modules.th1_th2_plotting import ax_il12, ax_chain
 import modules.th1_th2_conceptual_parameters as params
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -60,8 +60,10 @@ fb_il4 = params.fb_il4
 fb_il12 = params.fb_il12
 hill_1 = feedback_dict[feedback_type][0]
 hill_2 = feedback_dict[feedback_type][1]
-fb_start = 1
-fb_end = 2
+fb_start = 0.5
+window = 0.1
+fb_end = 0.5
+assert fb_end <= simulation_time[-1]
 
 rate_params = [alpha_1, alpha_2, beta_1, beta_2, simulation_time, conc_il12,
               hill_1, hill_2, rate_ifn, rate_il4, half_saturation,
@@ -71,6 +73,22 @@ rate_params = [alpha_1, alpha_2, beta_1, beta_2, simulation_time, conc_il12,
 #==============================================================================
 # functions
 #==============================================================================
+def ax_time_course(state, ax, simulation_time, initial_cells, alpha_1, linestyle = "-"):
+    
+    norm = initial_cells / 100
+    th1_cells = state[:,alpha_1+1] / norm
+    #th2_cells = state[:,-1] / norm
+    
+    #print th1_cells[-1],th2_cells[-1]
+    #ax.plot(simulation_time, th0_cells, color = "k", linestyle = linestyle)
+    ax.plot(simulation_time, th1_cells, color = "tab:blue", linestyle = linestyle)
+    #ax.plot(simulation_time, th2_cells, color = "tab:red", linestyle = linestyle)
+    ax.set_yticks([0, 50, 100])
+    ax.set_ylim([0, 100])
+    ax.set_xlim([simulation_time[0], simulation_time[-1]])
+    ax.set_xlabel("time")
+    ax.set_ylabel("% Th cells")
+
 def get_hill(feedback_type, fb_dict = feedback_dict):
     return feedback_dict[feedback_type]
 
@@ -107,7 +125,7 @@ rtm_params = assign_fb(feedback = "pos_th1", model_type = "rtm", params = rate_p
 
 rate_simu = run_model(*rate_params)
 rtm_simu = run_model(*rtm_params)
-
+"""
 fig, ax = plt.subplots(1,1, figsize = (5,4))
 ax_time_course(rate_simu, 
                ax, 
@@ -121,4 +139,25 @@ ax_time_course(rtm_simu,
                simulation_time = simulation_time, 
                alpha_1 = 20, 
                initial_cells = initial_cells)
+plt.tight_layout()
+"""
+fb_start_arr = np.linspace(0,3,100)
+windows = np.linspace(0,2,9)
+
+
+rate_il12 = feedback_timing(fb_start_arr, *rate_params)
+rtm_il12 = feedback_timing(fb_start_arr, *rtm_params)
+
+fig, axes = plt.subplots(3, 3)
+axes = axes.flatten()
+
+for ax, window in zip(axes, windows):
+    rate_params[-1] = window
+    rtm_params[-1] = window
+    rate_il12 = feedback_timing(fb_start_arr, *rate_params)
+    rtm_il12 = feedback_timing(fb_start_arr, *rtm_params)
+    
+    ax_il12(rate_il12, ax, linestyle = "--")
+    ax_il12(rtm_il12, ax)
+
 plt.tight_layout()
