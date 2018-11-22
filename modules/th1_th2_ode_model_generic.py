@@ -16,6 +16,18 @@ def find_nearest(array, value):
     idx = (np.abs(array - value)).argmin()
     return idx
 
+def menten(x, p = 3, K = 1):
+    dummy = (x**p / (x**p + K))
+    return dummy
+
+def neg_fb(x, fb = 0.5, p = 3, K = 1):
+    # negative feedback strength should be between 0 and 1
+    return 1 - fb * menten(x, p, K)
+
+def pos_fb(x, fb = 1, p = 3, K = 1):
+    # positive fb strength should be greater or equal 1
+    return 1 + fb * menten(x, p, K)
+
 def p_th_diff(conc_ifn,conc_il4,conc_il12, hill, half_saturation, fb_ifn, fb_il4, fb_il12):
     """
     returns probability of Th1 Th2 differentiation for given cytokine concentrations
@@ -27,11 +39,11 @@ def p_th_diff(conc_ifn,conc_il4,conc_il12, hill, half_saturation, fb_ifn, fb_il4
     
     # watch out, this is tricky because if concentrations are zero and negative feedback (hill coeff < 0)
     # then you divide by zero, best avoid zero concentrations through base cytokine rate
-    ifn_prob = (conc_ifn/half_saturation[0])**hill[0]
-    il4_prob = (conc_il4/half_saturation[1])**hill[1]
-    il12_prob = (conc_il12/half_saturation[2])**hill[2]
+    ifn_prob = (conc_ifn / half_saturation[0])**hill[0]
+    il4_prob = (conc_il4 / half_saturation[1])**hill[1]
+    il12_prob = (conc_il12 / half_saturation[2])**hill[2]
 
-    prob_th_diff = ifn_prob*il4_prob*il12_prob
+    prob_th_diff = ifn_prob * il4_prob * il12_prob
     
     assert prob_th_diff >= 0, "probability is "+str(prob_th_diff)+" must be non-negative."
     
@@ -59,6 +71,38 @@ def p_menten(conc_ifn, conc_il4, conc_il12, hill, half_saturation, fb_ifn, fb_il
     
     return prob_th_diff
 
+def p_menten2(conc_ifn, conc_il4, conc_il12, hill, half_saturation, fb_ifn, fb_il4, fb_il12):
+    """
+    returns probability of Th1 Th2 differentiation for given cytokine concentrations
+    kinetics are hill-like so hill coefficients for cytokines also need to be provided
+    """
+    assert conc_ifn >= 0, "ifn conc is "+str(conc_ifn)+", concentrations must be non-negative."
+    assert conc_il4 >= 0, "il4 conc is "+str(conc_il4)+", concentrations must be non-negative."
+    assert conc_il12 >= 0, "il12conc is "+str(conc_il12)+", concentrations must be non-negative."
+
+    # watch out, this is tricky because if concentrations are zero and negative feedback (hill coeff < 0)
+    # then you divide by zero, best avoid zero concentrations through base cytokine rate
+    
+    cytokine = np.array([conc_ifn, conc_il4, conc_il12])
+    prob_cytokine = [1., 1., 1.]
+    feedback = [fb_ifn, fb_il4, fb_il12]
+    for i in range(3):
+        if hill[i] == -1:
+            prob_cytokine[i] = neg_fb(cytokine[i], fb = feedback[i], K = half_saturation[i])
+            #print prob_cytokine[i]
+            
+        if hill[i] == 1:           
+            prob_cytokine[i] = pos_fb(cytokine[i], fb = feedback[i], K = half_saturation[i])
+            
+            #print prob_cytokine[i]
+            
+    #print prob_cytokine   
+    prob_th_diff = np.prod(prob_cytokine)
+
+    assert prob_th_diff >= 0, "probability is "+str(prob_th_diff)+"but must be non-negative."
+    
+    return prob_th_diff
+
 def p_new(conc_ifn, conc_il4, conc_il12, hill, half_saturation, fb_ifn, fb_il4, fb_il12):
 
     assert conc_ifn >= 0, "ifn conc is "+str(conc_ifn)+", concentrations must be non-negative."
@@ -73,6 +117,7 @@ def p_new(conc_ifn, conc_il4, conc_il12, hill, half_saturation, fb_ifn, fb_il4, 
     il12_prob = (hill[2] * conc_il12 + 1) / (conc_il12 + 1)    
     
     prob_th_diff = ifn_prob*il4_prob*il12_prob
+
     assert prob_th_diff >= 0, "probability is "+str(prob_th_diff)+" must be non-negative."
     return prob_th_diff
      
@@ -102,19 +147,14 @@ def th_cell_diff(state,
     assert type(alpha_1) == int, "alpha dtype is "+str(type(alpha_1))+" but alpha must be an integer."
     assert type(alpha_2) == int, "alpha dtype is "+str(type(alpha_2))+" but alpha must be an integer."
         
-
-    if fun_probability == p_new:
-        conc_ifn = rate_ifn*state[alpha_1+1]
-        conc_il4 = rate_il4*state[-1]
+    conc_ifn = rate_ifn*state[alpha_1+1]
+    conc_il4 = rate_il4*state[-1]
         #print conc_il4, conc_ifn
-    
-    else:
-        conc_ifn = rate_ifn*state[alpha_1+1] + half_saturation[0]
-        conc_il4 = rate_il4*state[-1] + half_saturation[1]
+
     ### calculate initial th1 and th2 populations from naive cells based on branching probabilities    
     th_0 = state[0]    
     if t<1:   
-        assert th_0 > 0, "no initial cells provided or cells"
+        assert th_0 > 0, "no initial cells provided"
     
     # branching probablities
     if fb_start <= t <= fb_end:
@@ -129,6 +169,8 @@ def th_cell_diff(state,
     else:
         p_1 = 0.5
         p_2 = 0.5
+    
+    
     # assign th1 states and th2 states from initial vector based on chain length alpha
     th1 = state[1:(alpha_1+2)]
     th2 = state[(alpha_1+2):]
@@ -358,8 +400,8 @@ def il12(il12_conc,
         th2_endstate = state[-1, -1]
         th2_conc.append(th2_endstate)
         
-        th1_halfmax = th1_endstate/2
-        th2_halfmax = th2_endstate/2        
+        th1_halfmax = th1_endstate / 2
+        th2_halfmax = th2_endstate / 2        
         th1_tau_idx = find_nearest(state[:, alpha_1 + 1], th1_halfmax) * stepsize
         th2_tau_idx = find_nearest(state[:, -1], th2_halfmax) * stepsize
         th1_tau.append(th1_tau_idx)
@@ -508,8 +550,8 @@ def hilli_pos_th1(il12_conc,
         th2_endstate = state[-1, -1]
         th2_conc.append(th2_endstate)
         
-        th1_halfmax = th1_endstate/2
-        th2_halfmax = th2_endstate/2        
+        th1_halfmax = th1_endstate / 2
+        th2_halfmax = th2_endstate / 2        
         th1_tau_idx = find_nearest(state[:, alpha_1 + 1], th1_halfmax) * stepsize
         th2_tau_idx = find_nearest(state[:, -1], th2_halfmax) * stepsize
         th1_tau.append(th1_tau_idx)

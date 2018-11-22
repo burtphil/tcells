@@ -49,8 +49,8 @@ kd_il12 = 1.0
 half_saturation = [kd_ifn, kd_il4, kd_il12]
 
 # feedbacks
-fb_ifn = 1.0
-fb_il4 = 1.0
+fb_ifn = 5.0
+fb_il4 = 0.5
 fb_il12 = 1.0
 
 

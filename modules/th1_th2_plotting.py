@@ -74,6 +74,8 @@ def ax_il12(il12_array, ax, output = "steady_state", factor_x_axis = 1.0, linest
     if output == "steady_state":
         yval = [th1_conc, th2_conc]
         ylabel = "% Th cells"
+        ax.set_ylim([0,100])
+        ax.set_yticks([0,50,100])
     else:
         yval = [th1_tau, th2_tau]
         ylabel = r"$\tau_{1/2}$"
@@ -81,9 +83,9 @@ def ax_il12(il12_array, ax, output = "steady_state", factor_x_axis = 1.0, linest
     ax.plot(il12_conc_pm, yval[0], "tab:blue", linestyle = linestyle)
     ax.plot(il12_conc_pm, yval[1], "tab:red", linestyle = linestyle)
     ax.set_ylabel(ylabel)
-    ax.set_yticks([0,50,100])
+    
     #ax.set_title("Effect of IL-12 conc. on Th cell balance after 3 hours")
-    ax.set_ylim([0,100])
+    
     ax.set_xlim([il12_conc_pm[0],il12_conc_pm[-1]])
     
     #ax.set_ylabel("% Th cells after")
