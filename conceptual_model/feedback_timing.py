@@ -60,9 +60,9 @@ fb_il4 = params.fb_il4
 fb_il12 = params.fb_il12
 hill_1 = feedback_dict[feedback_type][0]
 hill_2 = feedback_dict[feedback_type][1]
-fb_start = 0.5
+fb_start = 0
 window = 0.1
-fb_end = 0.5
+fb_end = 1
 assert fb_end <= simulation_time[-1]
 
 rate_params = [alpha_1, alpha_2, beta_1, beta_2, simulation_time, conc_il12,
@@ -77,7 +77,7 @@ def ax_time_course(state, ax, simulation_time, initial_cells, alpha_1, linestyle
     
     norm = initial_cells / 100
     th1_cells = state[:,alpha_1+1] / norm
-    #th2_cells = state[:,-1] / norm
+    th2_cells = state[:,-1] / norm
     
     #print th1_cells[-1],th2_cells[-1]
     #ax.plot(simulation_time, th0_cells, color = "k", linestyle = linestyle)
@@ -118,6 +118,10 @@ def assign_fb(feedback, model_type, params = rate_params):
     
     return params
 
+def assign_window(params, window):
+    params = list(params)
+    params[-1] = window
+    return params
 #==============================================================================
 # run simulations
 #==============================================================================
@@ -125,39 +129,114 @@ rtm_params = assign_fb(feedback = "pos_th1", model_type = "rtm", params = rate_p
 
 rate_simu = run_model(*rate_params)
 rtm_simu = run_model(*rtm_params)
-"""
-fig, ax = plt.subplots(1,1, figsize = (5,4))
+
+rate_params2 = list(rate_params)
+rate_params2[-1] = 2
+rate_params2[-2] = 1
+
+rtm_params2 = list(rtm_params)
+rtm_params2[-1] = 2
+rtm_params2[-2] = 1
+
+rate_simu2 = run_model(*rate_params2)
+rtm_simu2 = run_model(*rtm_params2)
+
+
+fig, ax = plt.subplots(1,2, figsize = (10,4))
 ax_time_course(rate_simu, 
-               ax, 
+               ax[0], 
                simulation_time = simulation_time, 
                alpha_1 = 1, 
                initial_cells = initial_cells, 
                linestyle = "--")
 
 ax_time_course(rtm_simu, 
-               ax, 
+               ax[0], 
                simulation_time = simulation_time, 
                alpha_1 = 20, 
                initial_cells = initial_cells)
+
+
+ax_time_course(rate_simu2, 
+               ax[1], 
+               simulation_time = simulation_time, 
+               alpha_1 = 1, 
+               initial_cells = initial_cells, 
+               linestyle = "--")
+
+ax_time_course(rtm_simu2, 
+               ax[1], 
+               simulation_time = simulation_time, 
+               alpha_1 = 20, 
+               initial_cells = initial_cells)
+
+ax[0].set_xticks([0,2,4,6])
+ax[0].axvspan(0, 1, alpha=0.5, color='gray')
+ax[1].axvspan(1, 2, alpha=0.5, color='gray')
 plt.tight_layout()
-"""
-fb_start_arr = np.linspace(0,3,100)
-windows = np.linspace(0,2,9)
+
+# change ax_time_course function before to include th2 cellss
+fig.savefig(save_path+"fb_onset_time_course.svg", bbox_inches = "tight")
 
 
-rate_il12 = feedback_timing(fb_start_arr, *rate_params)
-rtm_il12 = feedback_timing(fb_start_arr, *rtm_params)
+fb_start_arr = np.linspace(0,1.5,100)
+windows = [0.25,0.5,1.0]
 
-fig, axes = plt.subplots(3, 3)
+timing_params_rtm = [assign_window(rtm_params, w) for w in windows]
+timing_params_rate = [assign_window(rate_params, w) for w in windows]
+
+rtm_timing_simu = [feedback_timing(fb_start_arr, *p) for p in timing_params_rtm]
+rate_timing_simu = [feedback_timing(fb_start_arr, *p) for p in timing_params_rate]
+
+diff = []
+
+for i in range(len(rtm_timing_simu)):
+    rate_simu = rate_timing_simu[i][1]
+    rtm_simu = rtm_timing_simu[i][1]
+    th1_diff = rate_simu - rtm_simu
+    diff.append(th1_diff)
+    
+fig, ax = plt.subplots()
+ax.plot(fb_start_arr, diff[0], label = "fb duration = 0.25")
+ax.plot(fb_start_arr, diff[1], label = "fb duration = 0.5")
+ax.plot(fb_start_arr, diff[2], label = "fb duration = 1.0")
+ax.set_xlabel("feedback onset time")
+ax.set_ylabel(r"Th1 difference")   
+ax.set_ylim(-2,15)
+ax.legend()
+ax.set_yticks([0, 7.5, 15])
+plt.tight_layout()
+fig.savefig(save_path+"feedback_onset_diff.svg", bbox_inches = "tight")
+
+fig, axes = plt.subplots(1, 3, figsize = (12,4))
 axes = axes.flatten()
 
-for ax, window in zip(axes, windows):
-    rate_params[-1] = window
-    rtm_params[-1] = window
-    rate_il12 = feedback_timing(fb_start_arr, *rate_params)
-    rtm_il12 = feedback_timing(fb_start_arr, *rtm_params)
+for ax, rtm_simu, rate_simu, w in zip(axes, rtm_timing_simu, rate_timing_simu, windows):
     
-    ax_il12(rate_il12, ax, linestyle = "--")
-    ax_il12(rtm_il12, ax)
+    ax_il12(rate_simu, ax, linestyle = "--")
+    ax_il12(rtm_simu, ax)
+    ax.set_title(str(w))
 
 plt.tight_layout()
+
+
+fig, ax = plt.subplots(1, 1, figsize = (5,4))
+
+for rtm_simu, rate_simu, w in zip(rtm_timing_simu, rate_timing_simu, windows):
+    y1 = rate_simu[1]
+    y2 = rtm_simu[1]
+    ax.plot(fb_start_arr, y1, linestyle = "--")
+    ax.plot(fb_start_arr, y2)    
+    
+plt.tight_layout()
+
+fig, ax = plt.subplots()
+y1 = rate_timing_simu[1][1]
+y2 = rtm_timing_simu[1][1]
+ax.plot(fb_start_arr, y1, "tab:blue",  linestyle = "--")
+ax.plot(fb_start_arr, y2, "tab:blue")
+ax.set_xlabel("feedback onset time")
+ax.set_ylabel("% Th1 cells")  
+ax.set_ylim(25,75)
+plt.tight_layout()
+fig.savefig(save_path+"feedback_onset_rate_rtm.svg", bbox_inches = "tight")
