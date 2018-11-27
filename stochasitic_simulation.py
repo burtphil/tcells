@@ -105,8 +105,8 @@ def run_stochastic_simulation(start, stop, nsteps, ncells,
                               alpha_th2 = cparams.alpha_th2,
                               beta_th1 = cparams.beta_th1,
                               beta_th2 = cparams.beta_th2,
-                              hill_1 = cparams.hill_1,
-                              hill_2 = cparams.hill_2,
+                              hill_1 = cparams.stoc_hill_1,
+                              hill_2 = cparams.stoc_hill_2,
                               half_saturation = cparams.half_saturation,
                               nstates = 3,
                               ):
@@ -139,10 +139,13 @@ def run_stochastic_simulation(start, stop, nsteps, ncells,
         il4 = cytokine_prod(n_th2, rate = cparams.rate_il4, base_rate = cparams.kd_il4)
         
         # calculate branching probabilities based on cytokine concentrations
-        p1 = p_th_diff(ifn, il4, cparams.conc_il12, hill = hill_1, half_saturation = half_saturation)
-        p2 = p_th_diff(ifn, il4, cparams.conc_il12, hill = hill_2, half_saturation = half_saturation)
+        p_1 = p_th_diff(ifn, il4, cparams.conc_il12, hill = hill_1, half_saturation = half_saturation)
+        p_2 = p_th_diff(ifn, il4, cparams.conc_il12, hill = hill_2, half_saturation = half_saturation)
         
-        probs = p_norm(p1,p2)
+        #p_1 = 0.7
+        #p_2 = 0.3
+        
+        probs = p_norm(p_1,p_2)
 
         for idx, cell in enumerate(cell_j):
             

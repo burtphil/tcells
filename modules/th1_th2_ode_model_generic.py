@@ -120,7 +120,7 @@ def p_new(conc_ifn, conc_il4, conc_il12, hill, half_saturation, fb_ifn, fb_il4, 
 
     assert prob_th_diff >= 0, "probability is "+str(prob_th_diff)+" must be non-negative."
     return prob_th_diff
-     
+   
 def th_cell_diff(state,
                  t,
                  alpha_1,
@@ -165,6 +165,8 @@ def th_cell_diff(state,
         # normalized branching probabilities
         p_1 = prob_th1 / (prob_th1 + prob_th2)
         p_2 = prob_th2 / (prob_th1 + prob_th2)
+        #p_1 = 0.7
+        #p_2 = 0.3
     
     else:
         p_1 = 0.5
@@ -640,6 +642,83 @@ def feedback_timing(fb_start_points,
     th2_conc = np.asarray(th2_conc) / norm
     
     return [fb_start_points, th1_conc, th2_conc, th1_tau, th2_tau]
+
+def feedback_duration(fb_duration_arr,
+         alpha_1,
+         alpha_2,
+         beta_1,
+         beta_2,
+         simulation_time,
+         conc_il12,
+         hill_1,
+         hill_2,
+         rate_ifn,
+         rate_il4,
+         half_saturation,
+         initial_cells,
+         degradation,
+         fb_ifn,
+         fb_il4,
+         fb_il12,
+         fb_start,
+         fb_end,
+         ):
+    """
+    plot steady state dependency of il12
+    """
+    th1_conc = []
+    th2_conc = []
+    th0_conc = []
+    th1_tau = []
+    th2_tau = []
+    norm = initial_cells  / 100
+    stepsize = simulation_time[-1]/(len(simulation_time)-1)
+    
+    for i in fb_duration_arr:
+        fb_end = i
+        #print fb_start, window
+        assert fb_end < simulation_time[-1]
+        state = run_model(alpha_1,
+                  alpha_2,
+                  beta_1,
+                  beta_2,
+                  simulation_time,
+                  conc_il12,
+                  hill_1,
+                  hill_2,
+                  rate_ifn,
+                  rate_il4,
+                  half_saturation,
+                  initial_cells,
+                  degradation,
+                  fb_ifn,
+                  fb_il4,
+                  fb_il12,
+                  fb_start,
+                  fb_end,
+                  )
+        
+        th0_endstate = state[-1, 0]
+        th0_conc.append(th0_endstate)
+            
+        th1_endstate = state[-1, alpha_1+1]
+        th1_conc.append(th1_endstate)
+        
+        th2_endstate = state[-1, -1]
+        th2_conc.append(th2_endstate)
+        
+        th1_halfmax = th1_endstate / 2
+        th2_halfmax = th2_endstate / 2        
+        th1_tau_idx = find_nearest(state[:, alpha_1 + 1], th1_halfmax) * stepsize
+        th2_tau_idx = find_nearest(state[:, -1], th2_halfmax) * stepsize
+        th1_tau.append(th1_tau_idx)
+        th2_tau.append(th2_tau_idx)  
+        
+    th0_conc = np.asarray(th0_conc) / norm
+    th1_conc = np.asarray(th1_conc) / norm
+    th2_conc = np.asarray(th2_conc) / norm
+    
+    return [fb_duration_arr, th1_conc, th2_conc, th1_tau, th2_tau]
 
 def get_readouts(state, alpha, initial_cells, simulation_time):
 

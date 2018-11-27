@@ -21,7 +21,7 @@ import matplotlib.image as mpimg
 os.chdir("/home/burt/Documents/code/th_cell_differentiation")
 
 ### run_model takes default parameters stored in th1_th2_parameters.py
-from modules.th1_th2_ode_model_generic import run_model, feedback_timing
+from modules.th1_th2_ode_model_generic import run_model, feedback_timing, feedback_duration
 from modules.th1_th2_plotting import ax_il12, ax_chain
 import modules.th1_th2_conceptual_parameters as params
 import matplotlib.pyplot as plt
@@ -176,11 +176,14 @@ ax[1].axvspan(1, 2, alpha=0.5, color='gray')
 plt.tight_layout()
 
 # change ax_time_course function before to include th2 cellss
-fig.savefig(save_path+"fb_onset_time_course.svg", bbox_inches = "tight")
+#fig.savefig(save_path+"fb_onset_time_course.svg", bbox_inches = "tight")
 
 
-fb_start_arr = np.linspace(0,1.5,100)
+fb_start_arr = np.linspace(0,2,100)
 windows = [0.25,0.5,1.0]
+fb_durations = np.linspace(0,3,100)
+
+
 
 timing_params_rtm = [assign_window(rtm_params, w) for w in windows]
 timing_params_rate = [assign_window(rate_params, w) for w in windows]
@@ -206,7 +209,7 @@ ax.set_ylim(-2,15)
 ax.legend()
 ax.set_yticks([0, 7.5, 15])
 plt.tight_layout()
-fig.savefig(save_path+"feedback_onset_diff.svg", bbox_inches = "tight")
+#fig.savefig(save_path+"feedback_onset_diff.svg", bbox_inches = "tight")
 
 fig, axes = plt.subplots(1, 3, figsize = (12,4))
 axes = axes.flatten()
@@ -230,13 +233,30 @@ for rtm_simu, rate_simu, w in zip(rtm_timing_simu, rate_timing_simu, windows):
     
 plt.tight_layout()
 
-fig, ax = plt.subplots()
+fb_dur_rate = list(rate_params)
+fb_dur_rtm = list(rtm_params)
+fb_duration_arr = np.linspace(0,2,100)
+
+fb_dur_simu_rate = feedback_duration(fb_duration_arr, *fb_dur_rate)
+fb_dur_simu_rtm = feedback_duration(fb_duration_arr, *fb_dur_rtm)
+
+
+fig, ax = plt.subplots(1,2, figsize = (10,4))
+
+ax_il12(fb_dur_simu_rate, ax[0], plot_both = False, linestyle = "--")
+ax_il12(fb_dur_simu_rtm, ax[0], plot_both = False)
+ax[0].set_xlabel("feedback duration")
+ax[0].set_ylim(49,80)
+ax[0].set_yticks([50, 60, 70, 80])
+
 y1 = rate_timing_simu[1][1]
 y2 = rtm_timing_simu[1][1]
-ax.plot(fb_start_arr, y1, "tab:blue",  linestyle = "--")
-ax.plot(fb_start_arr, y2, "tab:blue")
-ax.set_xlabel("feedback onset time")
-ax.set_ylabel("% Th1 cells")  
-ax.set_ylim(25,75)
+ax[1].plot(fb_start_arr, y1, "tab:blue",  linestyle = "--")
+ax[1].plot(fb_start_arr, y2, "tab:blue")
+ax[1].set_xlabel("feedback onset time")
+ax[1].set_ylabel("% Th1 cells")  
+ax[1].set_ylim(49,80)
+ax[1].set_xlim(0,2)
+#ax.set_ylim(25,75)
 plt.tight_layout()
-fig.savefig(save_path+"feedback_onset_rate_rtm.svg", bbox_inches = "tight")
+fig.savefig(save_path+"feedback_timings.svg", bbox_inches = "tight")

@@ -60,7 +60,7 @@ def ax_chain(chain_array, ax, output = "steady_state", steps_x_ticks = 2):
     ax.set_xlim([0, chain_length])
     ax.set_xticks(np.arange(0, chain_length + steps_x_ticks, steps_x_ticks))
 
-def ax_il12(il12_array, ax, output = "steady_state", factor_x_axis = 1.0, linestyle = "-"):
+def ax_il12(il12_array, ax, plot_both = True, output = "steady_state", factor_x_axis = 1.0, linestyle = "-"):
     """
     return axes object for il12 dependency
     """
@@ -81,7 +81,8 @@ def ax_il12(il12_array, ax, output = "steady_state", factor_x_axis = 1.0, linest
         ylabel = r"$\tau_{1/2}$"
         
     ax.plot(il12_conc_pm, yval[0], "tab:blue", linestyle = linestyle)
-    ax.plot(il12_conc_pm, yval[1], "tab:red", linestyle = linestyle)
+    if plot_both == True:
+        ax.plot(il12_conc_pm, yval[1], "tab:red", linestyle = linestyle)
     ax.set_ylabel(ylabel)
     
     #ax.set_title("Effect of IL-12 conc. on Th cell balance after 3 hours")

@@ -19,24 +19,47 @@ from modules.th1_th2_plotting import ax_time_course
 #==============================================================================
 # import parameters
 #==============================================================================
-model_params = cparams.parameters
+feedback_dict = cparams.feedback_new
+feedback_type = "no_fb"
+
+alpha_1 = cparams.alpha_th1
+alpha_2 = cparams.alpha_th2
+beta_1 = cparams.beta_th2
+beta_2 = cparams.beta_th2
+half_saturation = cparams.half_saturation
+degradation = cparams.degradation
+rate_ifn = cparams.rate_ifn
+rate_il4 = cparams.rate_il4
+conc_il12 = cparams.conc_il12
+simulation_time = cparams.simulation_time
+initial_cells = cparams.initial_cells
+fb_ifn = cparams.fb_ifn
+fb_il4 = cparams.fb_il4
+fb_il12 = cparams.fb_il12
+hill_1 = feedback_dict[feedback_type][0]
+hill_2 = feedback_dict[feedback_type][1]
+fb_start = 0
+fb_end = 6
+assert fb_end <= simulation_time[-1]+0.1
+
+rate_params = [alpha_1, alpha_2, beta_1, beta_2, simulation_time, conc_il12,
+              hill_1, hill_2, rate_ifn, rate_il4, half_saturation,
+              initial_cells, degradation, fb_ifn, fb_il4, fb_il12, fb_start, fb_end]
+
+rtm_params = [20, 20, 20, 20, simulation_time, conc_il12,
+              hill_1, hill_2, rate_ifn, rate_il4, half_saturation,
+              initial_cells, degradation, fb_ifn, fb_il4, fb_il12, fb_start, fb_end]
 
 #==============================================================================
 # run time course simulation
 #==============================================================================
-simulation_name = "sim"
-
-th1_th2_model = run_model(simulation_name, parameters = model_params)
-
-test_simulation = np.load(simulation_name+".npz")
-state = test_simulation["state"]
-parameters = test_simulation["parameters"]
-
-   
-
+th1_th2_model = run_model(*rate_params)
+rtm_simu = run_model(*rtm_params)
 # plot time course
 #plot_time_course(th1_th2_model, parameters)
-
+#fig, ax = plt.subplots()
+#ax_time_course(th1_th2_model, ax = ax, simulation_time = simulation_time, initial_cells = initial_cells, alpha_1 = alpha_1)
+#ax_time_course(rtm_simu, ax = ax, simulation_time = simulation_time, initial_cells = initial_cells, alpha_1 = 20)
 #==============================================================================
 # perform and plot multiple simulations
 #==============================================================================
@@ -64,7 +87,10 @@ def plt_stochastic_model():
     fig, ax = plt.subplots(1,2,figsize = (12,5))
     
     for i in range(1):
-        cells, time = run_stochastic_simulation(start = cparams.start, stop = cparams.stop, nsteps = cparams.nsteps, ncells = cparams.ncells)
+        cells, time = run_stochastic_simulation(start = cparams.start,
+                                                stop = cparams.stop,
+                                                nsteps = cparams.nsteps,
+                                                ncells = cparams.ncells)
         
         # get all cells for each time step but only the cell state (not probability or tau)
         
@@ -97,22 +123,58 @@ def plt_stochastic_model():
     fig.suptitle(r"$\alpha_1=10,\alpha_2=1$, 10000 cells, stochastic sim (left) vs ODE sim (right)", fontsize = 12)
     plt.tight_layout()
 
-
 def plt_stochastic_model2(cells, time, ax):            
     naive_cells,th1_cells,th2_cells = get_cells(cells, time)     
-    ax.plot(time, naive_cells, "k")
+    #ax.plot(time, naive_cells, "k")
     ax.plot(time, th1_cells, "tab:blue")
     ax.plot(time, th2_cells, "r")
-    
-#fig, ax = plt.subplots(1,1,figsize =(5,5))
-#for __ in range(1):
-#    cells, time = run_stochastic_simulation(start = cparams.start, stop = cparams.stop, nsteps = cparams.nsteps, ncells = cparams.ncells)
-#    plt_stochastic_model2(cells, time, ax)
 
+stoc_simus = [run_stochastic_simulation(start = cparams.start,stop = cparams.stop,nsteps = cparams.nsteps,ncells = cparams.ncells) for _ in range(10)]
+th1_th2_cells = [get_cells(simu[0], simu[1])[1:] for simu in stoc_simus]
+
+label = ["Th1","Th2"]
+labels = [label for _ in range(10)]
+flat_labels = [item for sublist in labels for item in sublist]
+flat_cells = [item for sublist in th1_th2_cells for item in sublist]
+df = pd.DataFrame.from_records(flat_cells).transpose()
+df.columns = flat_labels
+
+df["time"] = simulation_time
+df_long = df.melt(id_vars = ["time"])
+
+stoc_simus_rtm = [run_stochastic_simulation(start = cparams.start,stop = cparams.stop,nsteps = cparams.nsteps,ncells = cparams.ncells, alpha_th1 = 20, alpha_th2 = 20, beta_th1 = 20, beta_th2 = 20) for _ in range(10)]
+th1_th2_cells_rtm = [get_cells(simu[0], simu[1])[1:] for simu in stoc_simus_rtm]
+flat_cells_rtm = [item for sublist in th1_th2_cells_rtm for item in sublist]
+df_rtm = pd.DataFrame.from_records(flat_cells_rtm).transpose()
+df_rtm.columns = flat_labels
+
+df_rtm["time"] = simulation_time
+df_long_rtm = df_rtm.melt(id_vars = ["time"])
+
+fig, ax = plt.subplots(1, 2, figsize =(10,4))
+stoc_plot = sns.lineplot(x = "time", y = "value",  data = df_long, hue = "variable", ci = "sd", ax = ax[0], palette = ["tab:blue", "tab:red"])
+### for this I set the probabilities constant to pTh1 =0.7 and pTh2 = 0.3
+for i in range(2):
+    stoc_plot.lines[i].set_linestyle("--")
+
+stoc_plot_rtm = sns.lineplot(x = "time", y = "value", data = df_long_rtm, hue = "variable", ci = "sd", ax = ax[0], palette = ["tab:blue", "tab:red"])
+
+ax[0].set_ylim(0,1000)
+ax[0].set_yticks([0,500,1000])
+ax[0].set_ylabel(r"$n_{Tcells}$")
+ax[0].set_xlim(0,6)
+
+ax_time_course(th1_th2_model, ax = ax[1], simulation_time = simulation_time, initial_cells = initial_cells, alpha_1 = alpha_1, linestyle = "--")
+ax_time_course(rtm_simu, ax = ax[1], simulation_time = simulation_time, initial_cells = initial_cells, alpha_1 = 20)
+ax[1].set_xticks([0,2,4,6])
+plt.tight_layout()
+
+save_path = "/home/burt/Documents/tcell_project/figures/"
+#fig.savefig(save_path+"model_comparison.svg", bbox_inches = "tight")
 
 def chain_stochastic(chain_length,
-                     hill_1 = cparams.hill_1,
-                     hill_2 = cparams.hill_2,
+                     hill_1 = cparams.stoc_hill_1,
+                     hill_2 = cparams.stoc_hill_2,
                      alpha_var = "both"):
     """
     varies chain length and saves th1 and th2 concentration at end point
@@ -176,7 +238,7 @@ def plt_chain_stochastic(chain_arr, ax, alpha = 1, label = False):
         
     ax.set_ylim([0,1])
 
-
+"""
 fig_names = [
     "pos_feedback",
     "neg_feedback",
@@ -242,3 +304,4 @@ for hill_1, hill_2, fig_name in zip(hill_coeff_1, hill_coeff_2, fig_names):
 
 #save_path = "/home/burt/Documents/tcell_project/figures/"
 #fig.savefig(save_path+"chain_stochastic_pos_fb_th1.pdf", bbox_inches = "tight", dpi = 1200)
+"""

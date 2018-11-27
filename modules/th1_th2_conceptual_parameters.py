@@ -94,6 +94,9 @@ th2_idx = 4
 
 precursor_rate = 1.
 
-nsteps = 2000
-ncells = int(initial_cells)
+nsteps = stop*100
+ncells = int(1000)
 nsim = 10
+
+stoc_hill_1 = [0,0,0]
+stoc_hill_2 = [0,0,0]
