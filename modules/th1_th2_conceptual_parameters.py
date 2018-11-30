@@ -7,7 +7,6 @@ Created on Thu Sep 13 11:48:04 2018
 parameters for conceptual model simulation with equal means and all
 """
 import numpy as np
-
 #==============================================================================
 # model params
 #==============================================================================
@@ -20,7 +19,7 @@ feedback = {
         "neg_th2" : [[0,0,1], [-1,0,0]],
         "pos_th2_neg_th2" : [[0,0,1],[-1,1,0]]
         }
-pos = 5.
+pos = 10.
 neg = 0.1
 neut = 1.
 il12 = 1.
@@ -37,25 +36,21 @@ feedback_new = {
 # extracellular il12 concentration
 conc_il12 = 0
 
-#production rates cytokines
-rate_ifn = 0.01
-rate_il4 = 0.01
-
 # half saturation constants
 kd_ifn = 1.0
 kd_il4 = 1.0
 kd_il12 = 1.0
 
-half_saturation = [kd_ifn, kd_il4, kd_il12]
+K = [kd_ifn, kd_il4, kd_il12]
 
-# feedbacks
-fb_ifn = 5.0
-fb_il4 = 0.5
-fb_il12 = 1.0
-
+#production rates cytokines
+# these rates have little effect over wide range of parameters but sometimes,
+# curves look more smooth if they are set higher, then probabilities go up faster
+rate_ifn = 3*kd_ifn
+rate_il4 = 3*kd_il4
 
 ### at some point I need to change this to cell densities
-initial_cells = 10000.
+initial_cells = 1.0
 
 #
 mean_th1 = 1.

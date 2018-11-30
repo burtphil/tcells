@@ -21,8 +21,7 @@ import matplotlib.image as mpimg
 os.chdir("/home/burt/Documents/code/th_cell_differentiation")
 
 ### run_model takes default parameters stored in th1_th2_parameters.py
-from modules.th1_th2_ode_model_generic import run_model, feedback_timing, feedback_duration
-from modules.th1_th2_plotting import ax_il12, ax_chain
+from modules.th1_th2_ode_model_generic import run_model
 import modules.th1_th2_conceptual_parameters as params
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -48,16 +47,14 @@ alpha_1 = params.alpha_th1
 alpha_2 = params.alpha_th2
 beta_1 = params.beta_th2
 beta_2 = params.beta_th2
-half_saturation = params.half_saturation
+K = params.K
 degradation = params.degradation
 rate_ifn = params.rate_ifn
 rate_il4 = params.rate_il4
 conc_il12 = params.conc_il12
 simulation_time = params.simulation_time
 initial_cells = params.initial_cells
-fb_ifn = params.fb_ifn
-fb_il4 = params.fb_il4
-fb_il12 = params.fb_il12
+
 hill_1 = feedback_dict[feedback_type][0]
 hill_2 = feedback_dict[feedback_type][1]
 fb_start = 0
@@ -66,8 +63,8 @@ fb_end = 1
 assert fb_end <= simulation_time[-1]
 
 rate_params = [alpha_1, alpha_2, beta_1, beta_2, simulation_time, conc_il12,
-              hill_1, hill_2, rate_ifn, rate_il4, half_saturation,
-              initial_cells, degradation, fb_ifn, fb_il4, fb_il12, fb_start, fb_end]
+              hill_1, hill_2, rate_ifn, rate_il4, K,
+              initial_cells, degradation, fb_start, fb_end]
 
 
 #==============================================================================
@@ -90,7 +87,7 @@ def ax_time_course(state, ax, simulation_time, initial_cells, alpha_1, linestyle
     ax.set_ylabel("% Th cells")
 
 def get_hill(feedback_type, fb_dict = feedback_dict):
-    return feedback_dict[feedback_type]
+    return fb_dict[feedback_type]
 
 def assign_fb(feedback, model_type, params = rate_params):
     params = list(params)
@@ -188,8 +185,8 @@ fb_durations = np.linspace(0,3,100)
 timing_params_rtm = [assign_window(rtm_params, w) for w in windows]
 timing_params_rate = [assign_window(rate_params, w) for w in windows]
 
-rtm_timing_simu = [feedback_timing(fb_start_arr, *p) for p in timing_params_rtm]
-rate_timing_simu = [feedback_timing(fb_start_arr, *p) for p in timing_params_rate]
+rtm_timing_simu = [variable_effect(fb_start_arr, "feedback_timing", *p) for p in timing_params_rtm]
+rate_timing_simu = [variable_effect(fb_start_arr,"feedback_timing", *p) for p in timing_params_rate]
 
 diff = []
 
