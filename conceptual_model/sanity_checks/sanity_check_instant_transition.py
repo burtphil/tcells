@@ -37,7 +37,7 @@ def th_cell_diff(state,t,alpha_1,alpha_2,beta_1,beta_2, th0_influx = 0, degradat
     # calculate derivatives
         for j in range(len(th_state)):
             if j == 0:
-                dt_state[j] = -r * th_state[j]
+                dt_state[j] = - r * th_state[j]
                 
             elif j != (len(th_state) - 1):
                 dt_state[j] = r * (th_state[j-1] - th_state[j])

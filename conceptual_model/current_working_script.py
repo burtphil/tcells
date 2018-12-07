@@ -53,7 +53,7 @@ assert fb_end <= cparams.stop
 # import parameters
 #==============================================================================
 alpha_1 = 1
-alpha_2 = 10
+alpha_2 = 1
 beta_1 = float(alpha_1)
 beta_2 = float(alpha_2)
 K = cparams.K

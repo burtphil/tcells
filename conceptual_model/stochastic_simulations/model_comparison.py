@@ -14,7 +14,7 @@ import os
 os.chdir("/home/burt/Documents/code/th_cell_differentiation")
 import modules.th1_th2_conceptual_parameters as cparams
 from modules.th1_th2_ode_model_generic import run_model
-from stochasitic_simulation import run_stochastic_simulation
+from modules.th1_th2_stochastic import run_stochastic_simulation
 from modules.th1_th2_plotting import ax_time_course
 #==============================================================================
 # choose plotting style and saving path
@@ -191,7 +191,7 @@ df_long_rtm = df_rtm.melt(id_vars = ["time"])
 #==============================================================================
 # plot simulations
 #==============================================================================
-simulation_time2 = simulation_time - (1 - np.exp(-2 * simulation_time))
+simulation_time2 = simulation_time - (1 - np.exp(-simulation_time))
 
 fig, ax = plt.subplots(1, 2, figsize =(10,4))
 stoc_plot = sns.lineplot(x = "time", 
@@ -232,7 +232,10 @@ ax_time_course(rtm_simu,
                initial_cells = initial_cells,
                alpha_1 = 20)
 
-#ax[1].set_xticks([0,2,4,6])
+for a in ax:
+    a.set_xlim(0,8)
+    a.set_xticks([0,2,4,6,8])
+
 plt.tight_layout()
 
 save_path = "/home/burt/Documents/tcell_project/figures/"
