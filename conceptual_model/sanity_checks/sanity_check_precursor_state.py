@@ -11,7 +11,7 @@ import numpy as np
 from scipy.integrate import odeint
 import matplotlib.pyplot as plt
 
-def th_cell_diff(state,t,alpha_1,alpha_2,beta_1,beta_2, th0_influx = 0, degradation = 0):
+def th_cell_diff(state,t,alpha_1,alpha_2,beta_1,beta_2, th0_influx = 0, degradation = 1):
         
     th_0 = state[0]
     p_1 = 0.5
@@ -44,11 +44,11 @@ def th_cell_diff(state,t,alpha_1,alpha_2,beta_1,beta_2, th0_influx = 0, degradat
             elif j != (len(th_state)-1):
                 dt_state[j] = r*(th_state[j-1]-th_state[j])
             else:
-                dt_state[j] = r*th_state[j-1]-degradation
+                dt_state[j] = r*th_state[j-1]- degradation * th_state[j]
 
     # assign new number of naive cells based on the number of present naive cells that were designated th1_0 or th2_0
     #dt_th0 = state[0]
-    dt_th0 = -(p_1+p_2)*th_0+th0_influx
+    dt_th0 = 0
     
     #print type(dt_th0),type(dt_th1)
     # return cell states

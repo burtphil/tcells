@@ -1,6 +1,14 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 """
+Created on Mon Dec  3 16:35:53 2018
+
+@author: burt
+"""
+
+#!/usr/bin/env python2
+# -*- coding: utf-8 -*-
+"""
 Created on Fri Nov 30 11:26:19 2018
 
 @author: burt
@@ -39,7 +47,7 @@ save_path = "/home/burt/Documents/tcell_project/figures/"
 #==============================================================================
 # choose type of feedback
 #==============================================================================
-feedback_dict = cparams.feedback_new
+feedback_dict = cparams.feedback_menten
 feedback_type = "pos_th1"
 
 #==============================================================================
@@ -64,7 +72,7 @@ conc_il12 = cparams.conc_il12
 simulation_time = cparams.simulation_time
 initial_cells = cparams.initial_cells
 fb_strength = feedback_dict[feedback_type]
-hill_1 = [5.,5.,5.]
+hill_1 = [1,1,1]
 hill_2 = hill_1
 
 rate_params = [alpha_1, alpha_2, beta_1, beta_2, simulation_time, conc_il12,
@@ -75,56 +83,53 @@ rtm_params = [20, 20, 20, 20, simulation_time, conc_il12,
               hill_1, hill_2, fb_strength, rate_ifn, rate_il4, K,
               initial_cells, degradation, fb_start, fb_end]
 
-#==============================================================================
-# time course simulation
-#==============================================================================
-state = run_model(*rate_params)
-state_rtm = run_model(*rtm_params)
+hill_1 = [5,5,5]
+hill_2 = hill_1
 
-fig, ax = plt.subplots()
-ax_time_course(state, 
-               ax,
-               simulation_time = simulation_time, 
-               alpha_1 = alpha_1, 
-               initial_cells = initial_cells, 
-               linestyle = "--")
+hill5_params = [alpha_1, alpha_2, beta_1, beta_2, simulation_time, conc_il12,
+              hill_1, hill_2, fb_strength, rate_ifn, rate_il4, K,
+              initial_cells, degradation, fb_start, fb_end]
 
-ax_time_course(state_rtm, 
-               ax,
-               simulation_time = simulation_time, 
-               alpha_1 = 20, 
-               initial_cells = initial_cells, 
-               linestyle = "-")
-plt.tight_layout()
+hill5_rtm_params = [20, 20, 20, 20, simulation_time, conc_il12,
+              hill_1, hill_2, fb_strength, rate_ifn, rate_il4, K,
+              initial_cells, degradation, fb_start, fb_end]
 
-#==============================================================================
-# IL12
-#==============================================================================
-il12_params = list(rate_params)
-il12_arr = np.linspace(0,2,50)
-il12_readouts = variable_effect(il12_arr, "IL12", *il12_params)
-il12_cells = get_cell_arr(il12_readouts)
+hill_1 = [10,10,10]
+hill_2 = hill_1
 
-il12_params_rtm = list(rtm_params)
-il12_arr_rtm = np.linspace(0,2,50)
-il12_readouts_rtm = variable_effect(il12_arr_rtm, "IL12", *il12_params_rtm)
-il12_cells_rtm = get_cell_arr(il12_readouts_rtm)
+hill10_params = [alpha_1, alpha_2, beta_1, beta_2, simulation_time, conc_il12,
+              hill_1, hill_2, fb_strength, rate_ifn, rate_il4, K,
+              initial_cells, degradation, fb_start, fb_end]
 
-fig, ax = plt.subplots()
-ax_var_effect(il12_arr, il12_cells, ax, linestyle = "--", plot_both = False)
-ax_var_effect(il12_arr, il12_cells_rtm, ax, plot_both = False)
+hill10_rtm_params = [20, 20, 20, 20, simulation_time, conc_il12,
+              hill_1, hill_2, fb_strength, rate_ifn, rate_il4, K,
+              initial_cells, degradation, fb_start, fb_end]
 
 #==============================================================================
 # chain
 #==============================================================================
 chain_params = list(rate_params)
-chain_arr = np.arange(1,20,1)
-chain_readouts = variable_effect(chain_arr, "chain", *chain_params)
-chain_cells = get_cell_arr(chain_readouts)
+chain5_params = list(hill5_params)
+chain10_params = list(hill10_params)
 
 fig, ax = plt.subplots(1,1, figsize = (5,4))
+chain_arr = np.arange(1,20,1)
+
+chain_readouts = variable_effect(chain_arr, "chain", *chain_params)
+chain_cells = get_cell_arr(chain_readouts)
 ax_chain(chain_arr, chain_cells, ax, plot_both = False, xsteps = 5)
+
+chain_readouts = variable_effect(chain_arr, "chain", *chain5_params)
+chain_cells = get_cell_arr(chain_readouts)
+ax_chain(chain_arr, chain_cells, ax, plot_both = False, xsteps = 5)
+
+chain_readouts = variable_effect(chain_arr, "chain", *chain10_params)
+chain_cells = get_cell_arr(chain_readouts)
+ax_chain(chain_arr, chain_cells, ax, plot_both = False, xsteps = 5)
+
+
 ax.set_ylabel("% Th1 cells at final state")
+ax.set_ylabel("%Th cells")
 plt.tight_layout()
 #fig.savefig(save_path+"chain_pos_fb.svg", bbox_inches = "tight")
 
@@ -149,32 +154,7 @@ ax.set_xscale('log')
 ax.set_xticks([1, 10])
 ax.set_xlim(0,10)
 #ax.set_ylim(0,100)
+
+ax.set_xlabel("feedback strength")
+ax.set_ylabel("%Th cells")
 plt.tight_layout()
-#==============================================================================
-# cytokine rates
-#==============================================================================
-cyto_params = list(rate_params)
-cyto_arr = np.linspace(0,10,100)
-cyto_readouts = variable_effect(cyto_arr, "cytokine_rates", *cyto_params)
-cyto_cells = get_cell_arr(cyto_readouts)
-
-cyto_params_rtm = list(rtm_params)
-cyto_arr_rtm = np.linspace(0,10,100)
-cyto_readouts_rtm = variable_effect(cyto_arr_rtm, "cytokine_rates", *cyto_params_rtm)
-cyto_cells_rtm = get_cell_arr(cyto_readouts_rtm)
-
-
-fig, ax = plt.subplots()
-ax_var_effect(cyto_arr, cyto_cells, ax, linestyle = "--")
-ax_var_effect(cyto_arr_rtm, cyto_cells_rtm, ax)
-
-#==============================================================================
-# probabilities
-#==============================================================================
-rate_cytokines = get_cyto_conc(state, simulation_time, alpha_1, rate_ifn, rate_il4, initial_cells)
-probabilities = get_prob(rate_cytokines[0], rate_cytokines[1], conc_il12, hill_1, hill_2, K, fb_strength)
-
-fig,ax = plt.subplots()
-ax.plot(simulation_time, probabilities[0], "tab:blue")
-ax.plot(simulation_time, probabilities[1], "tab:red")
-

@@ -9,23 +9,23 @@ import numpy as np
 from scipy.integrate import odeint
 import matplotlib.pyplot as plt
 
-def th_cell_diff(state,t,alpha_1,alpha_2,beta_1,beta_2, th0_influx = 0, degradation = 0):
+def th_cell_diff(state,t,alpha_1,alpha_2,beta_1,beta_2, th0_influx = 0, degradation = 1):
         
     th_0 = state[0]
-    th1_0 = 0.5*th_0
-    th2_0 = 0.5*th_0
+    th1_0 = 0.5 * th_0
+    th2_0 = 0.5 * th_0
 
     #print th1_0,th2_0
     # assign th1 states and th2 states from initial vector based on chain length alpha
-    th1 = np.concatenate(([th1_0],state[1:(alpha_1+1)]))
-    th2 = np.concatenate(([th2_0],state[(alpha_1+1):]))
+    th1 = np.concatenate(([th1_0], state[1:(alpha_1+1)]))
+    th2 = np.concatenate(([th2_0], state[(alpha_1+1):]))
       
     dt_th1 = np.ones_like(th1)
     dt_th2 = np.ones_like(th2)
         
-    th_states = [th1,th2]
-    dt_th_states = [dt_th1,dt_th2]
-    rate = [beta_1,beta_2]
+    th_states = [th1, th2]
+    dt_th_states = [dt_th1, dt_th2]
+    rate = [beta_1, beta_2]
         
     ### differential equations depending on the number on intermediary states
     # loop over states of th1 and th2 cells
@@ -37,18 +37,20 @@ def th_cell_diff(state,t,alpha_1,alpha_2,beta_1,beta_2, th0_influx = 0, degradat
     # calculate derivatives
         for j in range(len(th_state)):
             if j == 0:
-                dt_state[j] = -r*th_state[j]
-            elif j != (len(th_state)-1):
-                dt_state[j] = r*(th_state[j-1]-th_state[j])
+                dt_state[j] = -r * th_state[j]
+                
+            elif j != (len(th_state) - 1):
+                dt_state[j] = r * (th_state[j-1] - th_state[j])
+                
             else:
-                dt_state[j] = r*th_state[j-1]-degradation
+                dt_state[j] = r * th_state[j-1] - degradation * th_state[j]
 
     # assign new number of naive cells based on the number of present naive cells that were designated th1_0 or th2_0
     #dt_th0 = state[0]
-    dt_th0 = dt_th1[0]+dt_th2[0]+th0_influx
+    dt_th0 = 0
     
     # return cell states
-    dt_state = np.concatenate(([dt_th0],dt_th1[1:],dt_th2[1:]))
+    dt_state = np.concatenate(([dt_th0], dt_th1[1:], dt_th2[1:]))
     
     return dt_state  
 

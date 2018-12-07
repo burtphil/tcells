@@ -4,24 +4,34 @@
 Created on Tue Nov 27 10:20:29 2018
 
 @author: burt
+script to plot all kind of distributions
 """
 
 from scipy.special import gamma
-
+from scipy.special import gammainc
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 save_path = "/home/burt/Documents/tcell_project/figures/"
 sns.set(context = "talk", style = "ticks")
 
-
 ###############################################################################
 ###################### define functions #######################################
 ###############################################################################
-
 def gamma_dist(t, alpha, beta):
+    """
+    regular gamma distrubtion
+    """
     return np.exp(-beta*t)*(beta**alpha)*(t**(alpha-1))/gamma(alpha)
 
+def gamma_cdf(t, alpha, beta):
+    dummy = t*beta
+    return gammainc(alpha,dummy)
+
+#==============================================================================
+# plot gamma distributions
+#==============================================================================
+#%%
 times = np.linspace(0,3,100)
 
 rate = gamma_dist(times,1,1)
@@ -74,3 +84,19 @@ for ax in axes:
     sns.despine()
 plt.tight_layout()
 #fig.savefig(save_path+"symmetric_branch_distributions.svg", bbox_inches = "tight")
+
+#==============================================================================
+# plot cumulative gamma distributions
+#==============================================================================
+#%%
+times = np.linspace(0,3,100)
+
+
+gamma_cdf_arr = [gamma_cdf(times, i, i) for i in range(1,20)]
+
+fig, ax = plt.subplots()
+
+for arr in gamma_cdf_arr:
+    ax.plot(times, arr)
+    
+ax.set_title("gamma cdf")

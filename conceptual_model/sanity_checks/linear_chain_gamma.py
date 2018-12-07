@@ -4,6 +4,7 @@
 Created on Thu Sep 27 17:47:00 2018
 
 @author: burt
+compare ode linear chain and gamma distribution
 """
 import numpy as np
 from scipy.special import gamma, gammainc

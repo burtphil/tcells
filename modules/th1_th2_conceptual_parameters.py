@@ -10,21 +10,27 @@ import numpy as np
 #==============================================================================
 # model params
 #==============================================================================
-feedback = {
-        "no_fb" : [[0,0,1], [0,0,0]],
-        "pos_neg_fb" : [[1,-1,1], [-1,1,0]],
-        "pos_th1" : [[1,0,1], [0,0,0]],
-        "pos_th2" : [[0,0,1], [0,1,0]], 
-        "neg_th1" : [[0,-1,1],[0,0,0]],
-        "neg_th2" : [[0,0,1], [-1,0,0]],
-        "pos_th2_neg_th2" : [[0,0,1],[-1,1,0]]
+pos = 2.
+neg = -0.5
+neut = 0
+
+
+feedback_menten = {
+        "no_fb" : [[neut,neut,pos], [neut,neut,neut]],
+        "pos_neg_fb" : [[pos,neg,pos], [neg,pos,neut]],
+        "pos_th1" : [[pos,neut,pos], [neut,neut,neut]],
+        "pos_th2" : [[neut,neut,pos], [neut,pos,neut]], 
+        "neg_th1" : [[neut,neg,pos],[neut,neut,neut]],
+        "neg_th2" : [[neut,neut,pos], [neg,neut,neut]],
+        "pos_th2_neg_th2" : [[neut,neut,pos],[neg,pos,neut]]
         }
+
 pos = 10.
 neg = 0.1
 neut = 1.
-il12 = 1.
 
-feedback_new = {
+
+feedback_gamma = {
         "no_fb" : [[neut,neut,pos], [neut,neut,neut]],
         "pos_neg_fb" : [[pos,neg,pos], [neg,pos,neut]],
         "pos_th1" : [[pos,neut,pos], [neut,neut,neut]],
@@ -70,7 +76,7 @@ degradation = 0
 # simulation time
 #==============================================================================
 start = 0
-stop = 6
+stop = 10
 # watch out, method chain also takes stepsize as independent argument
 stepsize = .01
 simulation_time = np.arange(start, stop, stepsize)
@@ -93,5 +99,5 @@ nsteps = stop*100
 ncells = int(1000)
 nsim = 10
 
-stoc_hill_1 = [0,0,0]
-stoc_hill_2 = [0,0,0]
+stoc_hill_1 = [1,1,1]
+stoc_hill_2 = [1,1,1]

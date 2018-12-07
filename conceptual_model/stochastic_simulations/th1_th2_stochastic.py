@@ -51,7 +51,7 @@ def draw_time(mean = 1.):
     return time
 
 
-def cytokine_prod(n_th, rate, base_rate = 1.0):
+def cytokine_prod(n_th, rate, base_rate = 0):
     """
     calculate cytokine concentration based on number of cells, the production rate and
     a basal cytokine concentration
@@ -75,39 +75,35 @@ def p_norm(p1,p2):
     p2 = 1-p1
     return [p1,p2]
 
-def p_th_diff(conc_ifn, conc_il4, conc_il12, hill, half_saturation, strength = 1.0):
-    """
-    returns probability of Th1 Th2 differentiation for given cytokine concentrations
-    kinetics are hill-like so hill coefficients for cytokines also need to be provided
-    """
+def p_gamma(conc_ifn, conc_il4, conc_il12, hill, K, fb_strength):
+
     assert conc_ifn >= 0, "ifn conc is "+str(conc_ifn)+", concentrations must be non-negative."
     assert conc_il4 >= 0, "il4 conc is "+str(conc_il4)+", concentrations must be non-negative."
     assert conc_il12 >= 0, "il12conc is "+str(conc_il12)+", concentrations must be non-negative."
     
     # watch out, this is tricky because if concentrations are zero and negative feedback (hill coeff < 0)
     # then you divide by zero, best avoid zero concentrations through base cytokine rate
-    ifn_prob = (conc_ifn/half_saturation[0])**hill[0]
-    il4_prob = (conc_il4/half_saturation[1])**hill[1]
-    il12_prob = (conc_il12/half_saturation[2])**hill[2]
+    ifn_prob = (fb_strength[0] * (conc_ifn**hill[0]) + K[0]) / ((conc_ifn**hill[0]) + K[0])
+    il4_prob = (fb_strength[1] * (conc_il4**hill[1]) + K[1]) / ((conc_il4**hill[1]) + K[1])
+    il12_prob = (fb_strength[2] * (conc_il12**hill[2]) + K[2]) / ((conc_il12**hill[2]) + K[2])    
+    
+    prob_th_diff = ifn_prob*il4_prob*il12_prob
 
-    prob_th_diff = strength*ifn_prob*il4_prob*il12_prob
-    
     assert prob_th_diff >= 0, "probability is "+str(prob_th_diff)+" must be non-negative."
-    
     return prob_th_diff
 
 #==============================================================================
 # simulations
 #==============================================================================
 
-def run_stochastic_simulation(start, stop, nsteps, ncells, 
+def run_stochastic_simulation(start, stop, nsteps, ncells, feedback_strength,
                               alpha_th1 = cparams.alpha_th1,
                               alpha_th2 = cparams.alpha_th2,
                               beta_th1 = cparams.beta_th1,
                               beta_th2 = cparams.beta_th2,
                               hill_1 = cparams.stoc_hill_1,
                               hill_2 = cparams.stoc_hill_2,
-                              half_saturation = cparams.half_saturation,
+                              K = cparams.K,
                               nstates = 3,
                               ):
     """
@@ -139,8 +135,8 @@ def run_stochastic_simulation(start, stop, nsteps, ncells,
         il4 = cytokine_prod(n_th2, rate = cparams.rate_il4, base_rate = cparams.kd_il4)
         
         # calculate branching probabilities based on cytokine concentrations
-        p_1 = p_th_diff(ifn, il4, cparams.conc_il12, hill = hill_1, half_saturation = half_saturation)
-        p_2 = p_th_diff(ifn, il4, cparams.conc_il12, hill = hill_2, half_saturation = half_saturation)
+        p_1 = p_gamma(ifn, il4, cparams.conc_il12, hill = hill_1, K = K, fb_strength = feedback_strength[0])
+        p_2 = p_gamma(ifn, il4, cparams.conc_il12, hill = hill_2, K = K, fb_strength = feedback_strength[1])
         
         #p_1 = 0.7
         #p_2 = 0.3

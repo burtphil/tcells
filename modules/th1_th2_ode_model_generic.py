@@ -16,62 +16,23 @@ def find_nearest(array, value):
     idx = (np.abs(array - value)).argmin()
     return idx
 
-def menten(x, p = 3, K = 1):
-    dummy = (x**p / (x**p + K))
+def menten(x, hill, K):
+    dummy = (x**hill / (x**hill + K))
     return dummy
 
-def neg_fb(x, fb = 0.5, p = 3, K = 1):
+def neg_fb(x, fb, hill, K):
+    assert hill > 0
+    assert 0 <= fb <= 1.
     # negative feedback strength should be between 0 and 1
-    return 1 - fb * menten(x, p, K)
+    return 1 - fb * menten(x, hill, K)
 
-def pos_fb(x, fb = 1, p = 3, K = 1):
+def pos_fb(x, fb, hill, K):
+    assert hill > 0
+    assert fb >= 0 , "fb strength is "+str(fb)
     # positive fb strength should be greater or equal 1
-    return 1 + fb * menten(x, p, K)
+    return 1 + fb * menten(x, hill, K)
 
-def p_th_diff(conc_ifn,conc_il4,conc_il12, hill, half_saturation, fb_ifn, fb_il4, fb_il12):
-    """
-    returns probability of Th1 Th2 differentiation for given cytokine concentrations
-    kinetics are hill-like so hill coefficients for cytokines also need to be provided
-    """
-    assert conc_ifn >= 0, "ifn conc is "+str(conc_ifn)+", concentrations must be non-negative."
-    assert conc_il4 >= 0, "il4 conc is "+str(conc_il4)+", concentrations must be non-negative."
-    assert conc_il12 >= 0, "il12conc is "+str(conc_il12)+", concentrations must be non-negative."
-    
-    # watch out, this is tricky because if concentrations are zero and negative feedback (hill coeff < 0)
-    # then you divide by zero, best avoid zero concentrations through base cytokine rate
-    ifn_prob = (conc_ifn / half_saturation[0])**hill[0]
-    il4_prob = (conc_il4 / half_saturation[1])**hill[1]
-    il12_prob = (conc_il12 / half_saturation[2])**hill[2]
-
-    prob_th_diff = ifn_prob * il4_prob * il12_prob
-    
-    assert prob_th_diff >= 0, "probability is "+str(prob_th_diff)+" must be non-negative."
-    
-    return prob_th_diff
-
-def p_menten(conc_ifn, conc_il4, conc_il12, hill, half_saturation, fb_ifn, fb_il4, fb_il12):
-    """
-    returns probability of Th1 Th2 differentiation for given cytokine concentrations
-    kinetics are hill-like so hill coefficients for cytokines also need to be provided
-    """
-    assert conc_ifn >= 0, "ifn conc is "+str(conc_ifn)+", concentrations must be non-negative."
-    assert conc_il4 >= 0, "il4 conc is "+str(conc_il4)+", concentrations must be non-negative."
-    assert conc_il12 >= 0, "il12conc is "+str(conc_il12)+", concentrations must be non-negative."
-    
-    # watch out, this is tricky because if concentrations are zero and negative feedback (hill coeff < 0)
-    # then you divide by zero, best avoid zero concentrations through base cytokine rate
-    cytokine = np.array([conc_ifn, conc_il4, conc_il12])
-    fb_strength = np.array([fb_ifn, fb_il4, fb_il12])
-    hill = np.array(hill)
-    half_saturation = np.array(half_saturation)
-    menten = fb_strength * (cytokine**hill / (half_saturation + cytokine**hill))
-    prob_th_diff = np.prod(menten)
-    
-    assert prob_th_diff >= 0, "probability is "+str(prob_th_diff)+" must be non-negative."
-    
-    return prob_th_diff
-
-def p_menten2(conc_ifn, conc_il4, conc_il12, hill, half_saturation, fb_ifn, fb_il4, fb_il12):
+def p_menten(conc_ifn, conc_il4, conc_il12, hill, K, fb_strength):
     """
     returns probability of Th1 Th2 differentiation for given cytokine concentrations
     kinetics are hill-like so hill coefficients for cytokines also need to be provided
@@ -85,14 +46,13 @@ def p_menten2(conc_ifn, conc_il4, conc_il12, hill, half_saturation, fb_ifn, fb_i
     
     cytokine = np.array([conc_ifn, conc_il4, conc_il12])
     prob_cytokine = [1., 1., 1.]
-    feedback = [fb_ifn, fb_il4, fb_il12]
     for i in range(3):
-        if hill[i] == -1:
-            prob_cytokine[i] = neg_fb(cytokine[i], fb = feedback[i], K = half_saturation[i])
+        if fb_strength[i] < 0:            
+            prob_cytokine[i] = neg_fb(cytokine[i], hill = hill[i], fb = -fb_strength[i], K = K[i])
             #print prob_cytokine[i]
             
-        if hill[i] == 1:           
-            prob_cytokine[i] = pos_fb(cytokine[i], fb = feedback[i], K = half_saturation[i])
+        if fb_strength[i] > 0:    
+            prob_cytokine[i] = pos_fb(cytokine[i], hill = hill[i], fb = fb_strength[i], K = K[i])
             
             #print prob_cytokine[i]
             
@@ -103,7 +63,7 @@ def p_menten2(conc_ifn, conc_il4, conc_il12, hill, half_saturation, fb_ifn, fb_i
     
     return prob_th_diff
 
-def p_new(conc_ifn, conc_il4, conc_il12, hill, K):
+def p_gamma(conc_ifn, conc_il4, conc_il12, hill, K, fb_strength):
 
     assert conc_ifn >= 0, "ifn conc is "+str(conc_ifn)+", concentrations must be non-negative."
     assert conc_il4 >= 0, "il4 conc is "+str(conc_il4)+", concentrations must be non-negative."
@@ -111,10 +71,9 @@ def p_new(conc_ifn, conc_il4, conc_il12, hill, K):
     
     # watch out, this is tricky because if concentrations are zero and negative feedback (hill coeff < 0)
     # then you divide by zero, best avoid zero concentrations through base cytokine rate
-
-    ifn_prob = (hill[0] * conc_ifn + K[0]) / (conc_ifn + K[0])
-    il4_prob = (hill[1] * conc_il4 + K[1]) / (conc_il4 + K[1])
-    il12_prob = (hill[2] * conc_il12 + K[2]) / (conc_il12 + K[2])    
+    ifn_prob = (fb_strength[0] * (conc_ifn**hill[0]) + K[0]) / ((conc_ifn**hill[0]) + K[0])
+    il4_prob = (fb_strength[1] * (conc_il4**hill[1]) + K[1]) / ((conc_il4**hill[1]) + K[1])
+    il12_prob = (fb_strength[2] * (conc_il12**hill[2]) + K[2]) / ((conc_il12**hill[2]) + K[2])    
     
     prob_th_diff = ifn_prob*il4_prob*il12_prob
 
@@ -133,13 +92,13 @@ def get_cyto_conc(state, simulation_time, alpha_1, rate_ifn, rate_il4, initial_c
     conc_il4 = rate_il4*th2_cells
     return conc_ifn, conc_il4
 
-def get_prob(conc_ifn_list, conc_il4_list, conc_il12, hill_1, hill_2, K):
+def get_prob(conc_ifn_list, conc_il4_list, conc_il12, hill_1, hill_2, K, fb_strength, fun_prob = p_gamma):
     """
     calculate branching probs for a list of cytokine concentrations
     return probabilities
     """
-    prob_th1 = [p_new(conc_ifn, conc_il4, conc_il12, hill_1, K) for conc_ifn, conc_il4 in zip(conc_ifn_list, conc_il4_list)]
-    prob_th2 = [p_new(conc_ifn, conc_il4, conc_il12, hill_2, K) for conc_ifn, conc_il4 in zip(conc_ifn_list, conc_il4_list)]
+    prob_th1 = [fun_prob(conc_ifn, conc_il4, conc_il12, hill_1, K, fb_strength[0]) for conc_ifn, conc_il4 in zip(conc_ifn_list, conc_il4_list)]
+    prob_th2 = [fun_prob(conc_ifn, conc_il4, conc_il12, hill_2, K, fb_strength[1]) for conc_ifn, conc_il4 in zip(conc_ifn_list, conc_il4_list)]
     prob_th1 = np.array(prob_th1)
     prob_th2 = np.array(prob_th2)
     p_1 = prob_th1 / (prob_th1 + prob_th2)
@@ -155,6 +114,7 @@ def th_cell_diff(state,
                  conc_il12,
                  hill_1,
                  hill_2, 
+                 fb_strength,
                  rate_ifn,
                  rate_il4,
                  K,
@@ -162,7 +122,7 @@ def th_cell_diff(state,
                  fb_start,
                  fb_end,
                  const_thn = False,
-                 fun_probability = p_new,
+                 fun_probability = p_gamma,
                  ):
         
     # calculate interferon gamma (ifn) and il4 concentrations based on the number of th1 and th2 cells
@@ -180,8 +140,8 @@ def th_cell_diff(state,
     
     # branching probablities
     if fb_start <= t <= fb_end:
-        prob_th1 = fun_probability(conc_ifn, conc_il4, conc_il12, hill_1, K)
-        prob_th2 = fun_probability(conc_ifn, conc_il4, conc_il12, hill_2, K)    
+        prob_th1 = fun_probability(conc_ifn, conc_il4, conc_il12, hill_1, K, fb_strength[0])
+        prob_th2 = fun_probability(conc_ifn, conc_il4, conc_il12, hill_2, K, fb_strength[1])    
         assert prob_th1+prob_th2 > 0, "prob th1="+str(prob_th1)+" prob th2="+str(prob_th2)+" cannot normalize."
     
         # normalized branching probabilities
@@ -216,18 +176,22 @@ def th_cell_diff(state,
         for j in range(len(th_state)):
             if j == 0:
                 dt_state[j] = p * th_0 - r * th_state[j]
+                
             elif j != (len(th_state)-1):
                 dt_state[j] = r * (th_state[j-1] - th_state[j])
+                
             else:
                 dt_state[j] = r * th_state[j-1] - degradation * th_state[j]
 
     # assign new number of naive cells based on the number of present naive cells that were designated th1_0 or th2_0
     # if a constant Th naive cell pool is assumed (default parameter const_thn = True) then change should be 0
     # because pool should not change   
+    th0_influx = 1
+    
     if const_thn == False:
         dt_th0 = -th_0
     else:
-        dt_th0 = 0
+        dt_th0 = th0_influx - th_0
    # return cell states
     dt_state = np.concatenate(([dt_th0], dt_th1, dt_th2))
     
@@ -243,6 +207,7 @@ def run_model(alpha_1,
               conc_il12,
               hill_1,
               hill_2,
+              fb_strength,
               rate_ifn,
               rate_il4,
               K,
@@ -266,7 +231,7 @@ def run_model(alpha_1,
     #hill_2 = hill_coeff[1]  
     state = odeint(th_cell_diff, ini_cond, simulation_time, 
                    args = (alpha_1, alpha_2, beta_1, beta_2, conc_il12, hill_1, hill_2,
-                          rate_ifn, rate_il4, K, degradation, fb_start, fb_end))
+                           fb_strength, rate_ifn, rate_il4, K, degradation, fb_start, fb_end))
 
     return state
 
@@ -300,6 +265,7 @@ def variable_effect(
          conc_il12,
          hill_1,
          hill_2,
+         fb_strength,
          rate_ifn,
          rate_il4,
          K,
@@ -328,7 +294,7 @@ def variable_effect(
             beta_2 = float(i)
                     
         if variable_name == "feedback_strength_pos_Th1":
-            hill_1[0] = i
+            fb_strength[0][0] = i
         
         if variable_name == "feedback_duration":
             fb_end = i
@@ -351,6 +317,7 @@ def variable_effect(
                   conc_il12,
                   hill_1,
                   hill_2,
+                  fb_strength,
                   rate_ifn,
                   rate_il4,
                   K,
