@@ -38,7 +38,7 @@ def N_i(t,i, d, div_t, n_1):
     analytical function N_i(t) for cell numbers that have undergone i divisions
     depends on number of cells that have undergone 1 division (n_1)
     """
-    return ((2*np.exp(-d*div_t))**(i-1))*n_1(t-(i-1)*div_t)
+    return (2*np.exp(-d*div_t))**(i-1) * n_1(t-(i-1)*div_t)
  
 def dN_1_dt(cell_numbers, t, alpha, beta, div_t, d):
     """
@@ -56,6 +56,7 @@ simulation_time_n1 = np.arange(0,250,0.01)
 state = odeint(dN_1_dt, param.initial_cells, simulation_time_n1,
                args = (param.alpha,param.beta, param.div_t, param.d))
 
+# n_1 is a function object!
 n_1 = interp1d(simulation_time_n1, state, axis = 0, kind='cubic', fill_value = 0, bounds_error = False)
 
 #plt.plot(simulation_time_n1, n_1(simulation_time_n1))

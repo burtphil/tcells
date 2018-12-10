@@ -7,7 +7,7 @@ Created on Mon Sep 10 09:26:10 2018
 """
 import numpy as np
 
-def ax_time_course(state, ax, simulation_time, initial_cells, alpha_1, linestyle = "-"):
+def ax_time_course(state, ax, simulation_time, initial_cells, alpha_1, linestyle = "-", label = False, linewidth = 1):
     
     norm = initial_cells / 100
     th1_cells = state[:,alpha_1+1] / norm
@@ -15,13 +15,15 @@ def ax_time_course(state, ax, simulation_time, initial_cells, alpha_1, linestyle
     
     #print th1_cells[-1],th2_cells[-1]
     #ax.plot(simulation_time, th0_cells, color = "k", linestyle = linestyle)
-    ax.plot(simulation_time, th1_cells, color = "tab:blue", linestyle = linestyle)
+    ax.plot(simulation_time, th1_cells, color = "tab:blue", linestyle = linestyle, linewidth = linewidth)
     ax.plot(simulation_time, th2_cells, color = "tab:red", linestyle = linestyle)
     #ax.set_yticks([0, 50, 100])
     #ax.set_ylim([0, 100])
     ax.set_xlim([simulation_time[0], simulation_time[-1]])
     ax.set_xlabel("time")
     ax.set_ylabel("% Th cells")
+    if label == True:
+        ax.legend(["Th1","Th2"])
        
 def ax_var_effect(x_var, y_val, ax, linestyle = "-", plot_both = True):
     ax.plot(x_var, y_val[0], "tab:blue", linestyle = linestyle)    

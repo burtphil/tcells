@@ -80,8 +80,7 @@ rtm_simu = run_model(*rtm_params)
 def get_cells(cells, time):
     """
     input: cells and time, which is output from the function: run_stochastic_simulation
-    use state to specify if you want the cell fate (state = 0) or
-    the decision time (state = 1)
+    use this for the model with precursor state times included
     """
     all_cells = cells[:,:, 0]
         
@@ -102,8 +101,7 @@ def get_cells(cells, time):
 def get_cells2(cells, time):
     """
     input: cells and time, which is output from the function: run_stochastic_simulation
-    use state to specify if you want the cell fate (state = 0) or
-    the decision time (state = 1)
+    use this if you want to adjust for the time it takes for the cell to decide its fate
     """
     all_cells = cells[:,:, 0]
     
@@ -131,13 +129,6 @@ def get_cells2(cells, time):
     
     return [naive_cells, th1_cells,th2_cells]
 
-def plt_stochastic_model2(cells, time, ax, fun = get_cells2):            
-    naive_cells,th1_cells,th2_cells = fun(cells, time)     
-    #ax.plot(time, naive_cells, "k")
-    ax.plot(time, th1_cells, "tab:blue")
-    ax.plot(time, th2_cells, "r")
-
-
 #==============================================================================
 # run simulations for stochastic rate model
 #==============================================================================
@@ -146,22 +137,6 @@ stoc_simus = [run_stochastic_simulation(start = cparams.start,
                                         nsteps = cparams.nsteps,
                                         ncells = cparams.ncells,
                                         feedback_strength = fb_strength) for _ in range(10)]
-    
-th1_th2_cells = [get_cells2(simu[0], simu[1])[1:] for simu in stoc_simus]
-
-
-#==============================================================================
-# data wrangling to make nice df for stoc data with shaded SD in tidy format
-#==============================================================================
-label = ["Th1","Th2"]
-labels = [label for _ in range(10)]
-flat_labels = [item for sublist in labels for item in sublist]
-flat_cells = [item for sublist in th1_th2_cells for item in sublist]
-df = pd.DataFrame.from_records(flat_cells).transpose()
-df.columns = flat_labels
-
-df["time"] = simulation_time
-df_long = df.melt(id_vars = ["time"])
 
 #==============================================================================
 # run simulations for stochastic rtm model
@@ -176,11 +151,32 @@ stoc_simus_rtm = [run_stochastic_simulation(start = cparams.start,
                                             beta_th1 = alpha_1_rtm, 
                                             beta_th2 = alpha_1_rtm) for _ in range(10)]
     
-th1_th2_cells_rtm = [get_cells2(simu[0], simu[1])[1:] for simu in stoc_simus_rtm]
+#==============================================================================
+# data wrangling to make nice df for stoc data with shaded SD in tidy format
+#==============================================================================
 
-#==============================================================================
-# data wrangling for stoc data again
-#==============================================================================
+# get the proper cells
+
+th1_th2_cells_old = [get_cells(simu[0], simu[1])[1:] for simu in stoc_simus]
+th1_th2_cells_rtm_old = [get_cells(simu[0], simu[1])[1:] for simu in stoc_simus_rtm]
+th1_th2_cells_rtm = [get_cells2(simu[0], simu[1])[1:] for simu in stoc_simus_rtm]
+th1_th2_cells = [get_cells2(simu[0], simu[1])[1:] for simu in stoc_simus]
+
+
+# make dummy labels for pandas df
+label = ["Th1","Th2"]
+labels = [label for _ in range(10)]
+flat_labels = [item for sublist in labels for item in sublist]
+
+# make a df for single step stoc simulation (adjusted time)
+flat_cells = [item for sublist in th1_th2_cells for item in sublist]
+df = pd.DataFrame.from_records(flat_cells).transpose()
+df.columns = flat_labels
+
+df["time"] = simulation_time
+df_long = df.melt(id_vars = ["time"])
+
+# make a df for rtm model stoc simulation (adjusted time)
 flat_cells_rtm = [item for sublist in th1_th2_cells_rtm for item in sublist]
 df_rtm = pd.DataFrame.from_records(flat_cells_rtm).transpose()
 df_rtm.columns = flat_labels
@@ -188,19 +184,42 @@ df_rtm.columns = flat_labels
 df_rtm["time"] = simulation_time
 df_long_rtm = df_rtm.melt(id_vars = ["time"])
 
+# make a df for single step stoc simulation (with precursor time)
+flat_labels = [item for sublist in labels for item in sublist]
+flat_cells_old = [item for sublist in th1_th2_cells_old for item in sublist]
+df_old = pd.DataFrame.from_records(flat_cells_old).transpose()
+df_old.columns = flat_labels
+
+df_old["time"] = simulation_time
+df_long_old = df_old.melt(id_vars = ["time"])
+
+# make a df for rtm model stoc simulation (with precursor time)
+flat_cells_rtm_old = [item for sublist in th1_th2_cells_rtm_old for item in sublist]
+df_rtm_old = pd.DataFrame.from_records(flat_cells_rtm_old).transpose()
+df_rtm_old.columns = flat_labels
+
+df_rtm_old["time"] = simulation_time
+df_long_rtm_old = df_rtm_old.melt(id_vars = ["time"])
+
 #==============================================================================
 # plot simulations
 #==============================================================================
-simulation_time2 = simulation_time - (1 - np.exp(-simulation_time))
 
-fig, ax = plt.subplots(1, 2, figsize =(10,4))
+#simulation_time2 = simulation_time - (1 - np.exp(-simulation_time))
+# simulation time to is a transformation that I thought could work for the ODE model to
+# reconstruct single step process but I think it does not work
+
+### for this I set the probabilities constant to pTh1 =0.7 and pTh2 = 0.3
+
+fig, ax = plt.subplots(1, 3, figsize =(15,4))
 stoc_plot = sns.lineplot(x = "time", 
                          y = "value", 
                          data = df_long,
                          hue = "variable",
                          ci = "sd",
                          ax = ax[0],
-                         palette = ["tab:blue", "tab:red"])
+                         palette = ["tab:blue", "tab:red"],
+                         legend = False)
 
 ### for this I set the probabilities constant to pTh1 =0.7 and pTh2 = 0.3
 for i in range(2):
@@ -212,34 +231,69 @@ stoc_plot_rtm = sns.lineplot(x = "time",
                              hue = "variable",
                              ci = "sd",
                              ax = ax[0],
-                             palette = ["tab:blue", "tab:red"])
+                             palette = ["tab:blue", "tab:red"],
+                             legend = False)
 
-#ax[0].set_ylim(0,1000)
-#ax[0].set_yticks([0,500,1000])
+
 ax[0].set_ylabel(r"$n_{Tcells}$")
-#ax[0].set_xlim(0,6)
 
-ax_time_course(th1_th2_model,
-               ax = ax[1],
-               simulation_time = simulation_time2,
-               initial_cells = initial_cells,
-               alpha_1 = alpha_1,
-               linestyle = "--")
+stoc_plot = sns.lineplot(x = "time", 
+                         y = "value", 
+                         data = df_long_old,
+                         hue = "variable",
+                         ci = "sd",
+                         ax = ax[1],
+                         palette = ["tab:blue", "tab:red"],
+                         legend = False)
+
+### for this I set the probabilities constant to pTh1 =0.7 and pTh2 = 0.3
+for i in range(2):
+    stoc_plot.lines[i].set_linestyle("--")
+
+stoc_plot_rtm = sns.lineplot(x = "time",
+                             y = "value",
+                             data = df_long_rtm_old,
+                             hue = "variable",
+                             ci = "sd",
+                             ax = ax[1],
+                             palette = ["tab:blue", "tab:red"],
+                             legend = False)
+
+
+ax[0].set_ylabel(r"$n_{Tcells}$")
+ax[1].set_ylabel(r"$n_{Tcells}$")
 
 ax_time_course(rtm_simu,
-               ax = ax[1],
-               simulation_time = simulation_time2,
+               ax = ax[2],
+               simulation_time = simulation_time,
                initial_cells = initial_cells,
-               alpha_1 = 20)
+               alpha_1 = 20,
+               label = True,
+               linewidth = 4)
+
+ax_time_course(th1_th2_model,
+               ax = ax[2],
+               simulation_time = simulation_time,
+               initial_cells = initial_cells,
+               alpha_1 = alpha_1,
+               linestyle = "--",
+               linewidth = 4)
+
+
+
+ax[0].set_title("correction for precursor cell time")
+ax[1].set_title("no correction for precursor cell time")
+ax[2].set_title("ODE model with precursor states")
 
 for a in ax:
-    a.set_xlim(0,8)
-    a.set_xticks([0,2,4,6,8])
-
+    a.set_xlim(0,4)
+    
+fig.suptitle("comparison of stochastic and ODE simulation")
 plt.tight_layout()
+plt.subplots_adjust(top=0.8)
 
 save_path = "/home/burt/Documents/tcell_project/figures/"
-#fig.savefig(save_path+"model_comparison.svg", bbox_inches = "tight")
+fig.savefig(save_path+"model_comparison.pdf", bbox_inches = "tight")
 
 #==============================================================================
 # what happens if I try to recalculate the time?

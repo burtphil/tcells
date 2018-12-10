@@ -24,6 +24,7 @@ def gamma_dist(t, alpha, beta):
     """
     return np.exp(-beta*t)*(beta**alpha)*(t**(alpha-1))/gamma(alpha)
 
+
 def gamma_cdf(t, alpha, beta):
     dummy = t*beta
     return gammainc(alpha,dummy)
@@ -43,7 +44,7 @@ fig, ax = plt.subplots(1,1, figsize = (5,4))
 ax.plot(times, rate, label = r"$\alpha = 1$")
 ax.plot(times, alpha_10, label = r"$\alpha = 10$")
 ax.plot(times, alpha_20, label = r"$\alpha = 20$")
-ax.set_xlim(0,2)
+#ax.set_xlim(0,2)
 ax.set_xlabel("time")
 ax.legend()
 ax.set_ylabel("density")
@@ -51,7 +52,7 @@ ax.set_yticks([0,1,2])
 ax.set_ylim(0,2)
 sns.despine()
 plt.tight_layout()
-fig.savefig(save_path+"gamma_dist.svg", bbox_inches = "tight")
+#fig.savefig(save_path+"gamma_dist.svg", bbox_inches = "tight")
 
 fig, ax = plt.subplots(1,1, figsize = (5,4))
 ax.plot(times, rate, "k--", label = "single-step model")
