@@ -36,7 +36,7 @@ def gamma_cdf(t, alpha, beta):
 times = np.linspace(0,3,100)
 
 rate = gamma_dist(times,1,1)
-alpha_10 = gamma_dist(times, 10, 10)
+alpha_10 = gamma_dist(times, 10, 5)
 alpha_20 = gamma_dist(times, 20, 20)
 
 fig, ax = plt.subplots(1,1, figsize = (5,4))

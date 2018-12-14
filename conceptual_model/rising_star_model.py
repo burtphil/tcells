@@ -20,7 +20,7 @@ save_path = "/home/burt/Documents/tcell_project/figures/"
 #==============================================================================
 # import parameters
 #==============================================================================
-simulation_time = np.arange(0, 3, 0.01)
+simulation_time = np.arange(0, 5, 0.01)
 alpha_1 = 1
 alpha_2 = 10
 beta_1 = float(alpha_1)
@@ -28,7 +28,7 @@ beta_2 = float(alpha_2)
 
 initial_cells= 1
 t_div = 0.2
-th0_influx = 2.0
+th0_influx = 0
 degradation = 1.0
 prolif = True
 
@@ -107,6 +107,7 @@ def th_cell_diff(state, t, alpha_1, alpha_2, beta_1, beta_2, t_div, th0_influx, 
         dt_state = dt_th_states[i]
         r = rate[i]
         flux = cell_flux[i]
+        #print flux
             
     # calculate derivatives
         for j in range(len(th_state)):
@@ -228,7 +229,8 @@ ax.set_xlabel(xlabel)
 ax.set_ylabel(ylabel)
 ax.legend()
 plt.tight_layout()
-fig.savefig(save_path + "th1_th2_no_proliferation.pdf", bbox_inches="tight")
+#fig.savefig(save_path + "th1_th2_no_proliferation.pdf", bbox_inches="tight")
+
 #==============================================================================
 # plot cells
 #==============================================================================
@@ -286,7 +288,8 @@ ax[2].set_ylabel(ylabel)
 fig.suptitle(r"th1 th2 model with proliferation, $\alpha_{Th1}=1$, $\alpha_{Th2}=10$")
 plt.tight_layout()
 plt.subplots_adjust(top=0.8)
-fig.savefig(save_path + "th1_th2_proliferation.pdf", bbox_inches="tight")
+
+#fig.savefig(save_path + "th1_th2_proliferation.pdf", bbox_inches="tight")
 # plot individual generations together with total cell numbers
 fig, ax = plt.subplots(1, 1, figsize = (5,4))
 for th1_gen, th2_gen in zip(th1_all_gens, th2_all_gens):
