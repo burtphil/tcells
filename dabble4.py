@@ -10,21 +10,21 @@ from scipy.integrate import odeint
 import numpy as np
 import matplotlib.pyplot as plt
 a = 1
-b = 1
+b = 2
 
-y0 = 100
+y0 = 1
 
 def ode(state, t):
-    dt_state = 100.- 1. * state
+    dt_state = a- b * state
     return dt_state
 
 time = np.linspace(0,5,100)
 state = odeint(ode, y0, time)
 
-#plt.plot(time, state)
+plt.plot(time, state)
 
-def exp_cdf(t, mean):
-    return 1 - np.exp(-t / mean)
+#def exp_cdf(t, mean):
+#    return 1 - np.exp(-t / mean)
 
-plt.plot(time, exp_cdf(time, 1/100.))
-plt.plot(time, exp_cdf(time, 1))
+#plt.plot(time, exp_cdf(time, 1/100.))
+#plt.plot(time, exp_cdf(time, 1))
