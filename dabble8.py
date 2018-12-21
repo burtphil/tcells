@@ -18,6 +18,8 @@ from scipy.special import gammainc
 import seaborn as sns
 import pandas as pd
 import numba
+from contextlib import closing
+import multiprocessing
 
 sns.set(context = "talk", style = "ticks")
 #==============================================================================
@@ -45,6 +47,54 @@ def make_cells(ncells, nsteps, nstates):
 def exp_cdf(t, rate):
     return 1 - np.exp(-t * rate)
 
+#@numba.jit(nopython = True)
+def th0_diff(cells, t, t_new):
+    
+    # get th0 cells and corresponding ids
+    cell_bool = cells[:, 0] == 0
+    cells = cells[cell_bool, :]
+    cell_ids = np.nonzero(cell_bool)[0]
+    
+    # check which cells might differentiate
+    bool_diff = cells[:, 2] > cells[:, 1]
+    bool_diff2 = cells[:, 2] < cells[:, 1]
+    
+    # if cells do not differentiate, increase prob to differentiate
+    cells[bool_diff, 1] = (
+        cells[bool_diff, 1] +
+        (gamma_cdf(t_new - cells[bool_diff, 6], 20, 20)-
+         gamma_cdf(t - cells[bool_diff, 6], 20, 20)))
+
+    # if cells differentiate, reassign cell state marker to th1 cell
+    cells[bool_diff2, 0] = 1
+    cells[bool_diff2, 5] = t
+    
+    return cells, cell_ids
+
+#@numba.jit(nopython = True)
+def th1_death(cells, t, t_new):
+
+    # get th1 cells and cell ids
+    cell_bool = cells[:, 0] == 1
+    cells = cells[cell_bool, :]
+    cell_ids = np.nonzero(cell_bool)[0]
+    
+    # check which cells die
+    bool_diff = cells[:, 4] > cells[:, 3]
+    bool_diff2 = cells[:, 4] < cells[:, 3]
+
+    # if cell does not die, increase prob to die incrementally
+    cells[bool_diff, 3] = (
+        cells[bool_diff, 3] +
+        (exp_cdf(t_new - cells[bool_diff, 5], 1.)-
+         exp_cdf(t - cells[bool_diff, 5], 1.)))
+    
+    # is cells die, reassign state marker to dead cell
+    cells[bool_diff2, 0] = 2
+    
+    return cells, cell_ids
+    
+#@numba.jit(nopython=True)
 def stoc_simulation(start, stop, nsteps, ncells, nstates):
     """
     run a simulation of the th1 th2 models   
@@ -83,43 +133,26 @@ def stoc_simulation(start, stop, nsteps, ncells, nstates):
 
         # get all cells for current time step
         cell_j = cells[:,i,:]
-
-        # cell number should be number of alive cells not total number              
-        cell_number = cell_j.shape[0]
-        
-        # get number of current th0 and th1 cells
-        #n_th0 = sum(cell_j[:, cell_state_idx] == th0_cell)
-        #n_th1 = sum(cell_j[:, cell_state_idx] == th1_cell)
-        
+                
         # define rates
         rate_birth = 20.
         rate_diff = 1.
         rate_death = 1.
-        # loop over each cell for current time point
-        for j in range(cell_number):
-            cell = cell_j[j,:] 
+        
+        # write data from all current cells to next time point to include dead cells
+        cells[:,i+1,:] = cell_j
+       
+        # get th0 cells and their indices in cell_j array
+        th0_cells, th0_ids = th0_diff(cell_j, t, t_new)
+        
+        # update cells
+        cells[th0_ids, i+1,:] = th0_cells
 
-            #check if cell differentiates
-            if cell[cell_state_idx] == th0_cell:
-                if cell[rnd_diff_idx] > cell[prob_diff_idx]:
-                    cell[prob_diff_idx] = (cell[prob_diff_idx]+
-                        (gamma_cdf(t_new-cell[revival_time], 20, 20)-
-                         gamma_cdf(t-cell[revival_time], 20, 20)))
-                else:
-                    cell[cell_state_idx] = th1_cell
-                    cell[diff_time] = t
-                       
-            #check if cell dies
-            if cell[cell_state_idx] == th1_cell:
-                # do I need to assert that diff_time < t? otherwise newl
-                if cell[rnd_death_idx] > cell[prob_death_idx]:
-                    cell[prob_death_idx] = (cell[prob_death_idx]+
-                        (exp_cdf(t_new-cell[diff_time], rate_death)-
-                         exp_cdf(t-cell[diff_time], rate_death)))
-                else:
-                    cell[cell_state_idx] = dead_cell
-                    
-            cells[j,i+1,:] = cell
+        # get th1 cells and their indices in cell_j array
+        th1_cells, th1_ids = th1_death(cell_j, t, t_new)
+        
+        # update cells
+        cells[th1_ids, i+1,:] = th1_cells                   
             
         # is there a birth? if not, cumulatively add p_birth
         if rnd_birth > p_birth:           
@@ -141,28 +174,38 @@ def stoc_simulation(start, stop, nsteps, ncells, nstates):
             cells[cell_idx, i+1, :] = make_cells(1,1, nstates)
             cells[cell_idx, i+1, revival_time] = t
             
-    return [cells, time]     
+    return cells  
 
-def get_cells(cells, time):
+
+def get_cells(cells):
     """
     input: cells and time, which is output from the function: run_stochastic_simulation
     use this for the model with precursor state times included
     """
     all_cells = cells[:,:, 0]
-        
-    # make some dummy lists
-    th0_cells = []
-    th1_cells = []
-    dead_cells = []
-    
-    # for each time step, check how many of the cells belong to each subtype
-    for t in range(len(time)):
-        x = all_cells[:,t]
-        th0_cells.append(len(x[x==0]))
-        th1_cells.append(len(x[x==1]))
-        dead_cells.append(len(x[x==2]))
+          
+    th0_cells = np.sum(all_cells == 0, axis = 0)
+    th1_cells = np.sum(all_cells == 1, axis = 0)
+    dead_cells = np.sum(all_cells == 2, axis = 0)
    
     return th0_cells, th1_cells, dead_cells
+
+def dummy_fn(args):
+    return stoc_simulation(*args)
+    
+def sim_parallel(fn, start, stop, nsteps, ncells, nstates,
+                       n_simulations, n_threads):
+    """
+    Convenience function to do parallel Gillespie simulations for simple
+    gene expression.
+    """
+    input_args = (start, stop, nsteps, ncells, nstates)
+    
+    with closing(multiprocessing.Pool(n_threads)) as pool:
+        simulations = pool.map(fn, [input_args]*n_simulations)
+        pool.terminate()
+       
+    return np.array(simulations)
 
 #==============================================================================
 # set up params
@@ -173,14 +216,18 @@ nsteps = 20000
 ncells = 20
 nstates = 7
 nsim = 50
+n_threads = 6
 # =============================================================================
 # run simulation
 # =============================================================================
 th1_cells = np.zeros_like(np.linspace(start, stop, nsteps))
 
+simulation = sim_parallel(dummy_fn, start, stop, nsteps, ncells, nstates, nsim, n_threads)
+"""
+
 simulation = [stoc_simulation(start, stop, nsteps, ncells, nstates) for i in range(nsim)]
 time = np.linspace(start, stop, nsteps)
-thn_th1_cells = [get_cells(*simu)[1:3] for simu in simulation]
+thn_th1_cells = [get_cells(simu)[:2] for simu in simulation]
 
 # =============================================================================
 # plot figure
@@ -212,3 +259,4 @@ ax.set_ylabel("$n_{cells}$")
 ax.set_xlim(0,time[-1])
 plt.tight_layout()
 #fig.savefig("stoc_simulation_new2.pdf", bbox_inches = "tight")
+"""
