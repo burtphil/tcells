@@ -17,7 +17,8 @@ import matplotlib.pyplot as plt
 from scipy.special import gammainc
 import seaborn as sns
 import pandas as pd
-import numba
+import one_celltype_model as det_model
+
 
 sns.set(context = "talk", style = "ticks")
 #==============================================================================
@@ -45,7 +46,7 @@ def make_cells(ncells, nsteps, nstates):
 def exp_cdf(t, rate):
     return 1 - np.exp(-t * rate)
 
-def stoc_simulation(start, stop, nsteps, ncells, nstates):
+def stoc_simulation(start, stop, nsteps, ncells, nstates, rate_birth, alpha_diff, beta_diff, rate_death, n_dummies):
     """
     run a simulation of the th1 th2 models   
     this function uses the a cumulative gamma fct integral to calculate transition probability
@@ -65,7 +66,6 @@ def stoc_simulation(start, stop, nsteps, ncells, nstates):
     dead_cell = 2
 
     # initialize some dummy dead cells t
-    n_dummies = 100
     cells = make_cells(n_dummies+ncells, nsteps, nstates)
     time = np.linspace(start, stop, nsteps)
     cells[:n_dummies,:,cell_state_idx] = dead_cell
@@ -91,10 +91,6 @@ def stoc_simulation(start, stop, nsteps, ncells, nstates):
         #n_th0 = sum(cell_j[:, cell_state_idx] == th0_cell)
         #n_th1 = sum(cell_j[:, cell_state_idx] == th1_cell)
         
-        # define rates
-        rate_birth = 20.
-        rate_diff = 1.
-        rate_death = 1.
         # loop over each cell for current time point
         for j in range(cell_number):
             cell = cell_j[j,:] 
@@ -103,8 +99,8 @@ def stoc_simulation(start, stop, nsteps, ncells, nstates):
             if cell[cell_state_idx] == th0_cell:
                 if cell[rnd_diff_idx] > cell[prob_diff_idx]:
                     cell[prob_diff_idx] = (cell[prob_diff_idx]+
-                        (gamma_cdf(t_new-cell[revival_time], 20, 20)-
-                         gamma_cdf(t-cell[revival_time], 20, 20)))
+                        (gamma_cdf(t_new-cell[revival_time], alpha_diff, beta_diff)-
+                         gamma_cdf(t-cell[revival_time], alpha_diff, beta_diff)))
                 else:
                     cell[cell_state_idx] = th1_cell
                     cell[diff_time] = t
@@ -164,23 +160,73 @@ def get_cells(cells, time):
    
     return th0_cells, th1_cells, dead_cells
 
+def get_cells2(cells, time):
+    """
+    input: cells and time, which is output from the function: run_stochastic_simulation
+    use this for the model with precursor state times included
+    """
+    all_cells = cells[:,:, 0]
+          
+    th0_cells = np.sum(all_cells == 0, axis = 0)
+    th1_cells = np.sum(all_cells == 1, axis = 0)
+    dead_cells = np.sum(all_cells == 2, axis = 0)
+   
+    return th0_cells, th1_cells, dead_cells
+
 #==============================================================================
-# set up params
+# params
 #==============================================================================
 start = 0
-stop = 3
-nsteps = 20000
-ncells = 20
+stop = 5
+nsteps = 10000
+simulation_time = np.linspace(start, stop, nsteps)
+
+# stoc params
 nstates = 7
-nsim = 50
+nsim = 100
+n_dummies = 20
+
+# rates
+alpha_1 = 20
+alpha_2 = 1
+beta_1 = float(alpha_1)
+beta_2 = float(alpha_2)
+rate_birth = 1.0
+rate_death = 1.0
+
+# other params
+ncells = 1
+t_div = 0.1
+
+no_prolif = False
+no_prolif_params = [simulation_time, 
+                     alpha_1, 
+                     alpha_2, 
+                     beta_1, 
+                     beta_2, 
+                     t_div, 
+                     rate_birth, 
+                     rate_death,
+                     no_prolif,]
+
+stoc_params = [start, 
+               stop, 
+               nsteps, 
+               ncells, 
+               nstates, 
+               rate_birth, 
+               alpha_1, 
+               beta_1, 
+               rate_death, 
+               n_dummies,]
 # =============================================================================
 # run simulation
 # =============================================================================
-th1_cells = np.zeros_like(np.linspace(start, stop, nsteps))
+#th1_cells = np.zeros_like(np.linspace(start, stop, nsteps))
 
-simulation = [stoc_simulation(start, stop, nsteps, ncells, nstates) for i in range(nsim)]
-time = np.linspace(start, stop, nsteps)
-thn_th1_cells = [get_cells(*simu)[1:3] for simu in simulation]
+simulation = [stoc_simulation(*stoc_params) for i in range(nsim)]
+
+thn_th1_cells = [get_cells2(*simu)[:2] for simu in simulation]
 
 # =============================================================================
 # plot figure
@@ -196,7 +242,7 @@ flat_cells = [item for sublist in thn_th1_cells for item in sublist]
 df = pd.DataFrame.from_records(flat_cells).transpose()
 df.columns = flat_labels
 
-df["time"] = time
+df["time"] = simulation_time
 df_long = df.melt(id_vars = ["time"])
 
 fig, ax = plt.subplots(1, 1, figsize =(5,4))
@@ -209,6 +255,34 @@ stoc_plot = sns.lineplot(x = "time",
                          palette = ["k", "tab:blue"],
                          legend = False)
 ax.set_ylabel("$n_{cells}$")
-ax.set_xlim(0,time[-1])
+ax.set_xlim(0, simulation_time[-1])
+ax.legend(["Thn","Th diff"])
+ax.set_title(r"$\rightarrow$ Thn $\rightarrow$ Th diff $\rightarrow$ $\emptyset$")
 plt.tight_layout()
 #fig.savefig("stoc_simulation_new2.pdf", bbox_inches = "tight")
+
+#==============================================================================
+# compare stoc and deterministic model
+#==============================================================================
+no_prolif_state = det_model.run_model(*no_prolif_params)
+th1_no_prolif = no_prolif_state[:, alpha_1]
+th2_no_prolif = no_prolif_state[:, -1] 
+
+#==============================================================================
+# plot stoc and det sim together
+#==============================================================================
+df_th1 = df_long[df_long["variable"] == "Th1"]
+fig, ax = plt.subplots(1, 1, figsize =(5,4))
+stoc_plot = sns.lineplot(x = "time", 
+                         y = "value", 
+                         data = df_th1,
+                         ci = "sd",
+                         ax = ax,
+                         palette = ["tab:blue"],
+                         legend = False)
+ax.plot(simulation_time, th1_no_prolif, c = "tab:red", label = "det sim", linestyle = "--")
+ax.set_ylabel("$n_{cells}$")
+ax.set_xlim(0, simulation_time[-1])
+ax.legend(["stoc sim", "det sim"])
+#ax.set_title(r"$\rightarrow$ Thn $\rightarrow$ Th diff $\rightarrow$ $\emptyset$")
+plt.tight_layout()

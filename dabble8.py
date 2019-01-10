@@ -177,6 +177,7 @@ def stoc_simulation(start, stop, nsteps, ncells, nstates):
     return cells  
 
 
+
 def get_cells(cells):
     """
     input: cells and time, which is output from the function: run_stochastic_simulation

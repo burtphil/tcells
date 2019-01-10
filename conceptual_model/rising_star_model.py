@@ -12,6 +12,7 @@ from scipy.special import gamma
 from scipy.interpolate import interp1d
 import seaborn as sns
 
+
 #==============================================================================
 # choose plotting style and saving path
 #==============================================================================
@@ -20,17 +21,21 @@ save_path = "/home/burt/Documents/tcell_project/figures/"
 #==============================================================================
 # import parameters
 #==============================================================================
-simulation_time = np.arange(0, 5, 0.01)
-alpha_1 = 1
-alpha_2 = 10
+# rates
+alpha_1 = 20
+alpha_2 = 1
 beta_1 = float(alpha_1)
 beta_2 = float(alpha_2)
-
-initial_cells= 1
-t_div = 0.2
-th0_influx = 0
+t_div = 0.5
+th0_influx = 0.5
 degradation = 1.0
+
+# other params
+simulation_time = np.arange(0, 3, 0.01)
+initial_cells = 1
+last_gen = 4
 prolif = True
+
 
 prolif_params = [simulation_time, 
                      alpha_1, 
@@ -74,13 +79,6 @@ def gamma_dist(t, alpha, beta):
     else:
         return 0
     
-def N_i(t, i, d, t_div, n_1):
-    """
-    analytical function N_i(t) for cell numbers that have undergone i divisions
-    depends on number of cells that have undergone 1 division (n_1)
-    """
-    return (2 * np.exp(-d * t_div))**(i-1) * n_1(t - (i-1) * t_div)
-
 def th_cell_diff(state, t, alpha_1, alpha_2, beta_1, beta_2, t_div, th0_influx, degradation, prolif):
         
     th1 = state[:(alpha_1+1)]
@@ -93,8 +91,8 @@ def th_cell_diff(state, t, alpha_1, alpha_2, beta_1, beta_2, t_div, th0_influx, 
     dt_th_states = [dt_th1, dt_th2]
     rate = [beta_1, beta_2]
     
-    p_1 = 0.5
-    p_2 = 0.5
+    p_1 = 1.0
+    p_2 = 0
     
     cell_flux = [p_1 * th0_influx, p_2 * th0_influx]
     
@@ -169,6 +167,15 @@ def run_model(simulation_time,
     
     return state
 
+def N_i(t, i, d, t_div, n_1):
+    """
+    analytical function N_i(t) for cell numbers that have undergone i divisions
+    depends on number of cells that have undergone 1 division (n_1)
+    """
+    scale_off = 1.
+    scale_on = (2 * np.exp(-d * t_div))**(i-1)
+    return scale_on * n_1(t - (i-1) * t_div)
+
 def next_gens(simulation_time, degradation, t_div, first_gen_arr, no_of_next_gens):
     """
     calculate next generations based on array of first generation cells 
@@ -194,7 +201,6 @@ th2_n1 = interp1d(simulation_time, th2_cells, axis = 0, kind='cubic', fill_value
 th1_n1 = interp1d(simulation_time, th1_cells, axis = 0, kind='cubic', fill_value = 0, bounds_error = False)
 
 # calculate subsequent generations based on interpolated gen1 cells
-last_gen = 5
 th1_gens = next_gens(simulation_time, degradation, t_div, th1_n1, last_gen)
 th2_gens = next_gens(simulation_time, degradation, t_div, th2_n1, last_gen)
 #th2_gens = [N_i(simulation_time, i, d = degradation, t_div = t_div, n_1 = th2_n1) for i in range(2, last_gen)]    
@@ -232,7 +238,7 @@ plt.tight_layout()
 #fig.savefig(save_path + "th1_th2_no_proliferation.pdf", bbox_inches="tight")
 
 #==============================================================================
-# plot cells
+# plot cells (proliferation conditions)
 #==============================================================================
 xlabel = "time"
 ylabel = "#cells (normalized)"

@@ -48,39 +48,38 @@ def stoc_simulation(start, stop, nsteps, ncells, nstates):
     this function uses the a cumulative gamma fct integral to calculate transition probability
     """
     # initialize some dummy dead cells t
-    n_dummies = 100
+    n_dummies = 50
     
     cells = make_cells(n_dummies+ncells, nsteps, nstates)
     time = np.linspace(start, stop, nsteps)
     
-    # make some dead cells in the beginning
+    # make some dummy dead cells that can be used for birth process
     th0_idx = 0
     dead_cell_idx = 1
     cells[:n_dummies,:,0] = dead_cell_idx
     
-    # initialize random number and probability for birth process
+    # initialize random number for birth process
     rnd_birth = np.random.rand()
+    
+    # initialize p_birth and birth time, will be increased over time
     p_birth = 0
     t0 = 0
-        
+
+    # rates
+    rate_birth = 1.
+    rate_death = 0.1        
+
     # loop over each time point
     for i in range(len(time)-1):
         t = time[i]
         t_new = time[i+1]
 
-        # get all cells for current time step
+        # get all cells and corresponding states for current time step
         cell_j = cells[:,i,:]
 
-        # cell number should be number of alive cells not total number              
+        # get number of cells for current time step              
         cell_number = cell_j.shape[0]
         
-        # get number of current th0 cells
-        n_th0 = sum(cell_j[:,0] == th0_idx)
-
-        # rates
-        rate_birth = 10.
-        rate_death = 1.
-        #print cell_number
         # loop over each cell for current time point
         for j in range(cell_number):
             cell = cell_j[j,:] 
@@ -99,7 +98,7 @@ def stoc_simulation(start, stop, nsteps, ncells, nstates):
         if rnd_birth > p_birth:           
             p_birth = p_birth + (exp_cdf(t_new-t0, rate_birth)-exp_cdf(t-t0, rate_birth))
         
-        # if there is a birth, draw new rnd number 
+        # if there is a birth, draw new rnd number for the next birth time
         # and make a new th0 cell out of a dead cell
         else:          
             p_birth = 0
@@ -115,11 +114,10 @@ def stoc_simulation(start, stop, nsteps, ncells, nstates):
             
             # add survival time
             cells[cell_idx, i+1,3] = t
-            #new_cell = np.ones((1, nsteps, nstates))*3
-            #cells = np.concatenate((cells, new_cell))
-            #cells[-1, i+1, :] = make_cells(1,1,nstates)  
+
             
     return [cells, time]     
+
 
 def get_cells(cells, time):
     """
@@ -127,19 +125,11 @@ def get_cells(cells, time):
     use this for the model with precursor state times included
     """
     all_cells = cells[:,:, 0]
-        
-    # make some dummy lists
-    th1_cells = []
-    dead_cells = []
-    
-    # for each time step, check how many of the cells belong to each subtype
-    for t in range(len(time)):
-        x = all_cells[:,t]
-        th1_cells.append(len(x[x==0]))
-        dead_cells.append(len(x[x==1]))
+          
+    th1_cells = np.sum(all_cells == 0, axis = 0)
+    dead_cells = np.sum(all_cells == 1, axis = 0)
    
     return th1_cells, dead_cells
-
 #==============================================================================
 # set up params
 #==============================================================================
@@ -148,7 +138,8 @@ stop = 3
 nsteps = 3000
 ncells = 10
 nstates = 4
-nsim = 50
+nsim = 100
+
 # =============================================================================
 # run simulation
 # =============================================================================
