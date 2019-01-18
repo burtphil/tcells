@@ -1,11 +1,10 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 """
-Created on Tue Jan  8 11:17:57 2019
+Created on Thu Sep 27 17:47:00 2018
 
 @author: burt
-new model with influx of naive cells that is modulated by probabilities
-double check because branching probabilities might be set to a fixed value within function
+include yates proliferation assumption in det model
 """
 import numpy as np
 from scipy.integrate import odeint
@@ -13,6 +12,7 @@ import matplotlib.pyplot as plt
 from scipy.special import gamma
 from scipy.interpolate import interp1d
 import seaborn as sns
+
 
 #==============================================================================
 # choose plotting style and saving path
@@ -22,42 +22,41 @@ save_path = "/home/burt/Documents/tcell_project/figures/"
 #==============================================================================
 # import parameters
 #==============================================================================
-simulation_time = np.arange(0, 3, 0.01)
-alpha_1 = 20
-alpha_2 = 1
+# rates
+alpha_1 = 10
+alpha_2 = 5
 beta_1 = float(alpha_1)
 beta_2 = float(alpha_2)
-
-initial_cells = 1
-t_div = 0.2
 rate_birth = 0
-rate_death = 2.0
-prolif = True
-no_prolif = False
+rate_death = 1.0
 
-#==============================================================================
-# summarize params for model input
-#==============================================================================
+# other params
+simulation_time = np.arange(0, 5, 0.01)
+
+alpha_prolif = 10
+beta_prolif = 10.
+
 prolif_params = [simulation_time, 
                      alpha_1, 
                      alpha_2, 
                      beta_1, 
                      beta_2, 
-                     t_div, 
+                     alpha_prolif,
+                     beta_prolif,
                      rate_birth, 
                      rate_death,
-                     prolif,]
+                ]
 
-no_prolif_params = [simulation_time, 
-                     alpha_1, 
-                     alpha_2, 
-                     beta_1, 
-                     beta_2, 
-                     t_div, 
-                     rate_birth, 
-                     rate_death,
-                     no_prolif,]
-
+colors = ['tab:blue', 
+          'tab:orange', 
+          'tab:green', 
+          'tab:red', 
+          'tab:purple', 
+          'tab:brown', 
+          'tab:pink', 
+          'tab:gray', 
+          'tab:olive', 
+          'tab:cyan']
 #==============================================================================
 # functions
 #==============================================================================
@@ -70,32 +69,36 @@ def gamma_dist(t, alpha, beta):
     else:
         return 0
     
-def th_cell_diff(state, t, alpha_1, alpha_2, beta_1, beta_2, t_div, rate_birth, rate_death, prolif):
+y = [gamma_dist(t, 30, 30) for t in simulation_time]
+fig, ax = plt.subplots()
+ax.plot(simulation_time, y)
+
+def th_cell_diff(state, t, alpha_1, alpha_2, beta_1, beta_2, alpha_prolif, beta_prolif, rate_birth, rate_death):
         
-    th1 = state[:(alpha_1+1)]
-    th2 = state[(alpha_1+1):]
+    th1 = state[:(alpha_1+alpha_prolif)]
+    th2 = state[(alpha_1+alpha_prolif):]
       
-    dt_th1 = np.ones_like(th1)
-    dt_th2 = np.ones_like(th2)
+    dt_th1 = np.zeros_like(th1)
+    dt_th2 = np.zeros_like(th2)
         
     th_states = [th1, th2]
     dt_th_states = [dt_th1, dt_th2]
     rate = [beta_1, beta_2]
     
-    # note that cell_flux also determines model output
     p_1 = 1.0
     p_2 = 0
     
-    cell_flux = [p_1 * rate_birth, p_2 * rate_death]
+    cell_flux = [p_1 * rate_birth, p_2 * rate_birth]
     
     alphas = [alpha_1, alpha_2]
-    betas = [beta_1, beta_2]
+    rate = [beta_1, beta_2]
     ### differential equations depending on the number on intermediary states
     # loop over states of th1 and th2 cells
     for i in range(2):
         th_state = th_states[i]
         dt_state = dt_th_states[i]
         r = rate[i]
+        alpha = alphas[i]
         flux = cell_flux[i]
         #print flux
             
@@ -104,16 +107,15 @@ def th_cell_diff(state, t, alpha_1, alpha_2, beta_1, beta_2, t_div, rate_birth, 
             if j == 0:
                 dt_state[j] = flux - r * th_state[j]
                 
-            elif j != (len(th_state) - 1):
+            elif j < alpha:
                 dt_state[j] = r * (th_state[j-1] - th_state[j])
                 
-            elif prolif == True:
-                dt_state[j] = (2 * r * th_state[j-1]
-                - (gamma_dist(t - t_div, alphas[i], betas[i]) * np.exp(- rate_death * t_div))
-                - rate_death * th_state[j])
-                
+            elif j == alpha:
+                dt_state[j] = 2 * (r * th_state[j-1] + beta_prolif * th_state[-1]) - (rate_death + beta_prolif) * th_state[j]
+            
             else:
-                dt_state[j] = r * th_state[j-1] - r * th_state[j]
+                assert j > alpha
+                dt_state[j] = beta_prolif * (th_state[j-1] - th_state[j])
 
     # assign new number of naive cells based on the number of present naive cells that were designated th1_0 or th2_0
     #dt_th0 = state[0]    
@@ -127,22 +129,23 @@ def run_model(simulation_time,
               alpha_2, 
               beta_1, 
               beta_2, 
-              t_div, 
+              alpha_prolif,
+              beta_prolif,
               rate_birth, 
               rate_death,
-              prolif):
+              ):
     """ 
     run ode model with parameters from params file
     needs shape and rate params as input as well as simulation time
     """
 
     # define initial conditions based on number of intermediary states
-    no_of_states = int(alpha_1 + alpha_2 + 2)
+    no_of_states = int(alpha_1 + alpha_2 + alpha_prolif + alpha_prolif)
     ini_cond = np.zeros(no_of_states)
     
     initial_cells = 1
     ini_cond[0] = initial_cells
-    ini_cond[alpha_1+1] = initial_cells
+    ini_cond[alpha_1+alpha_prolif] = 0
 
     
     state = odeint(th_cell_diff, 
@@ -152,31 +155,27 @@ def run_model(simulation_time,
                           alpha_2, 
                           beta_1, 
                           beta_2, 
-                          t_div, 
-                          rate_birth,
-                          rate_death,
-                          prolif))
+                          alpha_prolif,
+                          beta_prolif,
+                          rate_birth, 
+                          rate_death)
+                   )
     
     return state
 
 #==============================================================================
-# analysis
+# run time course simulation (proliferation condtitions)
 #==============================================================================
-no_prolif_state = run_model(*no_prolif_params)
-th1_no_prolif = no_prolif_state[:, alpha_1]
-th2_no_prolif = no_prolif_state[:, -1] 
+state = run_model(*prolif_params)
+
+# get cells from the first generation
+th1_cells = state[:, alpha_1:(alpha_1+alpha_prolif)]
+th2_cells = state[:, (alpha_1+alpha_prolif+alpha_2):]
 
 
-xlabel = "time"
-ylabel = "% Th cells"
+th1_all_cells = np.sum(th1_cells, axis = 1)
+th2_all_cells = np.sum(th2_cells, axis = 1)
 
-# plot only first generation
-fig, ax = plt.subplots(1, 1, figsize = (5,4))
-ax.plot(simulation_time, th1_no_prolif, c = "tab:blue", label = "Th1", linestyle = "-")
-#ax.plot(simulation_time, th2_no_prolif, c = "tab:red", label = "Th2")
-#ax.set_title("no proliferation \n" + r"$\alpha_{Th1}=1$, $\alpha_{Th2}=10$")
-ax.set_title("no proliferation")
-ax.set_xlabel(xlabel)
-ax.set_ylabel(ylabel)
-ax.legend()
-plt.tight_layout()
+fig, ax = plt.subplots()
+ax.plot(simulation_time, th1_all_cells)
+ax.plot(simulation_time, th2_all_cells)

@@ -11,6 +11,8 @@ Created on Fri Dec 14 10:39:00 2018
 Created on Tue Dec 11 16:04:49 2018
 
 @author: burt
+cells differentiate and are born as thn and die
+not sure about model version
 """
 import numpy as np
 import matplotlib.pyplot as plt

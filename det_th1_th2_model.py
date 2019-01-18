@@ -26,14 +26,13 @@ alpha_1 = 20
 alpha_2 = 1
 beta_1 = float(alpha_1)
 beta_2 = float(alpha_2)
-t_div = 0.5
-th0_influx = 0.5
-degradation = 1.0
+t_div = 0.2
+rate_birth = 1.0
+rate_death = 2.0
 
 # other params
 simulation_time = np.arange(0, 3, 0.01)
-initial_cells = 1
-last_gen = 4
+last_gen = 5
 prolif = True
 
 
@@ -43,8 +42,8 @@ prolif_params = [simulation_time,
                      beta_1, 
                      beta_2, 
                      t_div, 
-                     th0_influx, 
-                     degradation,
+                     rate_birth, 
+                     rate_death,
                      prolif,]
 
 no_prolif_params = [simulation_time, 
@@ -53,8 +52,8 @@ no_prolif_params = [simulation_time,
                      beta_1, 
                      beta_2, 
                      t_div, 
-                     th0_influx, 
-                     degradation,
+                     rate_birth, 
+                     rate_death,
                      False,]
 
 colors = ['tab:blue', 
@@ -79,7 +78,7 @@ def gamma_dist(t, alpha, beta):
     else:
         return 0
     
-def th_cell_diff(state, t, alpha_1, alpha_2, beta_1, beta_2, t_div, th0_influx, degradation, prolif):
+def th_cell_diff(state, t, alpha_1, alpha_2, beta_1, beta_2, t_div, rate_birth, rate_death, prolif):
         
     th1 = state[:(alpha_1+1)]
     th2 = state[(alpha_1+1):]
@@ -94,7 +93,7 @@ def th_cell_diff(state, t, alpha_1, alpha_2, beta_1, beta_2, t_div, th0_influx, 
     p_1 = 1.0
     p_2 = 0
     
-    cell_flux = [p_1 * th0_influx, p_2 * th0_influx]
+    cell_flux = [p_1 * rate_birth, p_2 * rate_birth]
     
     alphas = [alpha_1, alpha_2]
     betas = [beta_1, beta_2]
@@ -116,12 +115,12 @@ def th_cell_diff(state, t, alpha_1, alpha_2, beta_1, beta_2, t_div, th0_influx, 
                 dt_state[j] = r * (th_state[j-1] - th_state[j])
                 
             elif prolif == True:
-                dt_state[j] = (2 * r * th_state[j-1]
-                - (gamma_dist(t - t_div, alphas[i], betas[i]) * np.exp(-degradation * t_div))
-                - degradation * th_state[j])
+                dt_state[j] = (r * th_state[j-1]
+                - (gamma_dist(t - t_div, alphas[i], betas[i]) * np.exp(-rate_death * t_div))
+                - rate_death * th_state[j])
                 
             else:
-                dt_state[j] = r * th_state[j-1] - degradation * th_state[j]
+                dt_state[j] = r * th_state[j-1] - rate_death * th_state[j]
 
     # assign new number of naive cells based on the number of present naive cells that were designated th1_0 or th2_0
     #dt_th0 = state[0]    
@@ -136,8 +135,8 @@ def run_model(simulation_time,
               beta_1, 
               beta_2, 
               t_div, 
-              th0_influx, 
-              degradation, 
+              rate_birth, 
+              rate_death, 
               prolif):
     """ 
     run ode model with parameters from params file
@@ -161,8 +160,8 @@ def run_model(simulation_time,
                           beta_1, 
                           beta_2, 
                           t_div, 
-                          th0_influx, 
-                          degradation, 
+                          rate_birth, 
+                          rate_death, 
                           prolif))
     
     return state
@@ -176,14 +175,14 @@ def N_i(t, i, d, t_div, n_1):
     scale_on = (2 * np.exp(-d * t_div))**(i-1)
     return scale_on * n_1(t - (i-1) * t_div)
 
-def next_gens(simulation_time, degradation, t_div, first_gen_arr, no_of_next_gens):
+def next_gens(simulation_time, rate_death, t_div, first_gen_arr, no_of_next_gens):
     """
     calculate next generations based on array of first generation cells 
     and return as list of arrays
     """
     dummy_list = [N_i(simulation_time,
                      i, 
-                     d = degradation, 
+                     d = rate_death, 
                      t_div = t_div, 
                      n_1 = first_gen_arr) for i in range(2, no_of_next_gens)]
     return dummy_list
@@ -201,8 +200,8 @@ th2_n1 = interp1d(simulation_time, th2_cells, axis = 0, kind='cubic', fill_value
 th1_n1 = interp1d(simulation_time, th1_cells, axis = 0, kind='cubic', fill_value = 0, bounds_error = False)
 
 # calculate subsequent generations based on interpolated gen1 cells
-th1_gens = next_gens(simulation_time, degradation, t_div, th1_n1, last_gen)
-th2_gens = next_gens(simulation_time, degradation, t_div, th2_n1, last_gen)
+th1_gens = next_gens(simulation_time, rate_death, t_div, th1_n1, last_gen)
+th2_gens = next_gens(simulation_time, rate_death, t_div, th2_n1, last_gen)
 #th2_gens = [N_i(simulation_time, i, d = degradation, t_div = t_div, n_1 = th2_n1) for i in range(2, last_gen)]    
 #th1_gens = [N_i(simulation_time, i, d = degradation, t_div = t_div, n_1 = th1_n1) for i in range(2, last_gen)]    
 
@@ -225,7 +224,7 @@ th2_no_prolif = no_prolif_state[:, -1]
 
 xlabel = "time"
 ylabel = "% Th cells"
-
+"""
 # plot only first generation
 fig, ax = plt.subplots(1, 1, figsize = (5,4))
 ax.plot(simulation_time, th1_no_prolif, c = "tab:blue", label = "Th1", linestyle = "--")
@@ -308,4 +307,16 @@ ax.legend()
 ax.set_xlabel(xlabel)
 ax.set_ylabel(ylabel)
 
+plt.tight_layout()
+"""
+fig, ax = plt.subplots(1, 1, figsize = (5,4))
+for th1_gen, th2_gen in zip(th1_all_gens, th2_all_gens):
+    ax.plot(simulation_time, th1_gen)
+    #ax.plot(simulation_time, th2_gen, c = "tab:red", alpha = 0.5)
+
+#ax.plot(simulation_time, sum_th1, c = "tab:blue", linestyle = "--", label = "Th1 (total)")
+#ax.plot(simulation_time, sum_th2, c = "tab:red", label = "Th2 (total)")
+ax.legend()
+ax.set_xlabel(xlabel)
+ax.set_ylabel(ylabel)
 plt.tight_layout()
