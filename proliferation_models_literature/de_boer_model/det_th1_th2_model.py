@@ -4,6 +4,10 @@
 Created on Thu Sep 27 17:47:00 2018
 
 @author: burt
+this script uses a multistep process for a cell to diff
+from type Thn to Th1 or Th2 with branching
+I found that de Boer et al can only be reproduced when no additional birth rate
+is assumed
 """
 import numpy as np
 from scipy.integrate import odeint

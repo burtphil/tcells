@@ -5,17 +5,9 @@ Created on Fri Jan 18 11:41:58 2019
 
 @author: burt
 prolif model yates as stochastic process
+with branching
 """
 
-#!/usr/bin/env python2
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Dec 14 10:39:00 2018
-
-@author: burt
---> thn --> th1 --> death
-also, th1 cells try to divide but this needs to be fixed
-"""
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.special import gammainc
@@ -28,14 +20,13 @@ sns.set(context = "talk", style = "ticks")
 # params
 #==============================================================================
 start = 0
-stop = 3
+stop = 2
 nsteps = 12000
 simulation_time = np.linspace(start, stop, nsteps)
 
 # stoc params
 nstates = 6
 nsim = 100
-n_dummies = 100
 
 # diff rate
 alpha_1 = 10
@@ -44,19 +35,17 @@ beta_1 = float(alpha_1)
 beta_2 = float(alpha_2)
 
 # prolif rate
-alpha_prolif = 10
+alpha_prolif = 20
 beta_prolif = float(alpha_prolif)
 
 # other rates
-rate_birth = 0.5
-rate_death = 2.0
+rate_birth = 1.0
+rate_death = 1.0
 
-
-y0 = np.zeros(alpha_1)
-y0[0] = 1
 
 # other params
-ncells = 1
+# one th1 precursor, one th2 precursor
+ncells = 2
 
 stoc_params = [start, 
                stop, 
@@ -66,6 +55,8 @@ stoc_params = [start,
                rate_birth, 
                alpha_1, 
                beta_1, 
+               alpha_2,
+               beta_2,
                alpha_prolif,
                beta_prolif,
                rate_death,
@@ -107,7 +98,23 @@ def exp_cdf(t, rate):
     return 1 - np.exp(-t * rate)
 
 
-def stoc_simulation(start, stop, nsteps, ncells, nstates, rate_birth, alpha_diff, beta_diff, alpha_prolif, beta_prolif, rate_death):
+def prob_simple(x):
+    y = x / (x + 1)
+    return y
+
+def stoc_simulation(start, 
+                    stop, 
+                    nsteps, 
+                    ncells, 
+                    nstates, 
+                    rate_birth, 
+                    alpha_th1_diff, 
+                    beta_th1_diff, 
+                    alpha_th2_diff, 
+                    beta_th2_diff,                    
+                    alpha_prolif, 
+                    beta_prolif, 
+                    rate_death):
     """
     run a simulation of the th1 th2 models   
     this function uses the a cumulative gamma fct integral to calculate transition probability
@@ -121,19 +128,29 @@ def stoc_simulation(start, stop, nsteps, ncells, nstates, rate_birth, alpha_diff
     prob_death = 5
 
     # define cell_state_idx state values
-    th0_cell = 0
+    th1_prec_cell = 0
     th1_cell = 1
-    dead_cell = 2
-
+    th2_prec_cell = 2
+    th2_cell = 3
+    
+    dead_cell = 4
 
     # initialize some dummy dead cells t
-    cells = make_cells(ncells, nsteps, nstates)
+    cells = make_cells(ncells+1, nsteps, nstates)
+    cells[0,:, cell_state] = dead_cell
+    cells[1,:, cell_state] = th1_prec_cell
+    cells[2,:, cell_state] = th2_prec_cell
+    
     # initialize one th1_cell
     time = np.linspace(start, stop, nsteps)
 
-    p_birth = 0
-    t0 = 0
-    rnd_birth = np.random.rand()    
+    p_th1_birth = 0
+    t0_th1 = 0
+    rnd_th1_birth = np.random.rand()    
+
+    p_th2_birth = 0
+    t0_th2 = 0
+    rnd_th2_birth = np.random.rand()    
 
     # loop over each time point
     for i in range(len(time)-1):
@@ -146,22 +163,22 @@ def stoc_simulation(start, stop, nsteps, ncells, nstates, rate_birth, alpha_diff
         # cell number should be number of alive cells not total number              
         cell_number = cell_j.shape[0]
         #print cell_number, t
-        counter = 0      
+        counter_th1 = 0
+        counter_th2 = 0
         # loop over each cell for current time point
-   
-        
+           
         for j in range(cell_number):
             
             cell = cell_j[j,:] 
 
             #check if cell differentiates
-            if cell[cell_state] == th0_cell:
+            if cell[cell_state] == th1_prec_cell:
                                              
                 if cell[rnd_change] > cell[prob_state_change]:
                     #print cell[prob_state_change]
                     cell[prob_state_change] = (cell[prob_state_change]+
-                        (gamma_cdf(t_new-cell[t_last_change], alpha_diff, beta_diff)-
-                         gamma_cdf(t-cell[t_last_change], alpha_diff, beta_diff)))
+                        (gamma_cdf(t_new-cell[t_last_change], alpha_th1_diff, beta_th1_diff)-
+                         gamma_cdf(t-cell[t_last_change], alpha_th1_diff, beta_th1_diff)))
                     #print cell[prob_state_change]
                 else:
                     cell[cell_state] = th1_cell
@@ -169,8 +186,17 @@ def stoc_simulation(start, stop, nsteps, ncells, nstates, rate_birth, alpha_diff
                     cell[prob_state_change] = 0
                     cell[rnd_change] = np.random.rand()
                     cell[rnd_death] = np.random.rand()
+                    cell[prob_death] = 0
                     
-                    counter += 1
+                    counter_th1 += 1
+
+                if cell[rnd_death] > cell[prob_death]:
+                    
+                    cell[prob_death] = (cell[prob_death]+
+                        (exp_cdf(t_new-cell[t_last_change], rate_death)-
+                         exp_cdf(t-cell[t_last_change], rate_death)))
+                else:
+                    cell[cell_state] = dead_cell
 
             #check if cell differentiates
             if cell[cell_state] == th1_cell:
@@ -189,8 +215,8 @@ def stoc_simulation(start, stop, nsteps, ncells, nstates, rate_birth, alpha_diff
                     cell[rnd_death] = np.random.rand()
                     cell[prob_death] = 0
                     
-                    counter += 1
-                    
+                    counter_th1 += 1
+
                 if cell[rnd_death] > cell[prob_death]:
                     
                     cell[prob_death] = (cell[prob_death]+
@@ -199,30 +225,105 @@ def stoc_simulation(start, stop, nsteps, ncells, nstates, rate_birth, alpha_diff
                 else:
                     cell[cell_state] = dead_cell
 
+            if cell[cell_state] == th2_prec_cell:
+                                             
+                if cell[rnd_change] > cell[prob_state_change]:
+                    #print cell[prob_state_change]
+                    cell[prob_state_change] = (cell[prob_state_change]+
+                        (gamma_cdf(t_new-cell[t_last_change], alpha_th2_diff, beta_th2_diff)-
+                         gamma_cdf(t-cell[t_last_change], alpha_th2_diff, beta_th2_diff)))
+                    #print cell[prob_state_change]
+                else:
+                    cell[cell_state] = th2_cell
+                    cell[t_last_change] = t
+                    cell[prob_state_change] = 0
+                    cell[rnd_change] = np.random.rand()
+                    cell[rnd_death] = np.random.rand()
+                    cell[prob_death] = 0
+                    
+                    counter_th2 += 1
 
+                if cell[rnd_death] > cell[prob_death]:
+                    
+                    cell[prob_death] = (cell[prob_death]+
+                        (exp_cdf(t_new-cell[t_last_change], rate_death)-
+                         exp_cdf(t-cell[t_last_change], rate_death)))
+                else:
+                    cell[cell_state] = dead_cell
+                    
+            #check if cell differentiates
+            if cell[cell_state] == th2_cell:
+                                             
+                if cell[rnd_change] > cell[prob_state_change]:
+                    #print cell[prob_state_change]
+                    cell[prob_state_change] = (cell[prob_state_change]+
+                        (gamma_cdf(t_new-cell[t_last_change], alpha_prolif, beta_prolif)-
+                         gamma_cdf(t-cell[t_last_change], alpha_prolif, beta_prolif)))
+                    #print cell[prob_state_change]
+                else:
+                    cell[cell_state] = th2_cell
+                    cell[t_last_change] = t
+                    cell[prob_state_change] = 0
+                    cell[rnd_change] = np.random.rand()
+                    cell[rnd_death] = np.random.rand()
+                    cell[prob_death] = 0
+                    
+                    counter_th2 += 1
+                    
+                if cell[rnd_death] > cell[prob_death]:
+                    
+                    cell[prob_death] = (cell[prob_death]+
+                        (exp_cdf(t_new-cell[t_last_change], rate_death)-
+                         exp_cdf(t-cell[t_last_change], rate_death)))
+                else:
+                    cell[cell_state] = dead_cell
+                    
             cells[j,i+1,:] = cell
 
         # is there a birth? if not, cumulatively add p_birth
-        if rnd_birth > p_birth:              
-            p_birth = p_birth + (exp_cdf(t_new-t0, rate_birth)-
-                                 exp_cdf(t-t0, rate_birth))
+        if rnd_th1_birth > p_th1_birth:              
+            p_th1_birth = p_th1_birth + (exp_cdf(t_new-t0_th1, 0.8 * rate_birth)-
+                                 exp_cdf(t-t0_th1, 0.8 * rate_birth))
         
         # if there is a birth, draw new rnd number 
         # and make a new th0 cell out of a dead cell
         else:       
 
-            p_birth = 0
-            t0 = t
-            rnd_birth = np.random.rand()            
+            p_th1_birth = 0
+            t0_th1 = t
+            rnd_th1_birth = np.random.rand()            
             #search for a dead cell to transform             
-            new_th0_cell = make_cells(1, nsteps, nstates)
-            new_th0_cell[:,i+1, t_last_change] = t 
-            cells = np.concatenate((cells, new_th0_cell)) 
+            new_th1_prec_cell = make_cells(1, nsteps, nstates)
+            new_th1_prec_cell[:,i+1, t_last_change] = t 
+            cells = np.concatenate((cells, new_th1_prec_cell)) 
+
+        if rnd_th2_birth > p_th2_birth:              
+            p_th2_birth = p_th2_birth + (exp_cdf(t_new-t0_th2, 0.2 * rate_birth)-
+                                 exp_cdf(t-t0_th2, 0.2 * rate_birth))
+        
+        # if there is a birth, draw new rnd number 
+        # and make a new th0 cell out of a dead cell
+        else:       
+
+            p_th2_birth = 0
+            t0_th2 = t
+            rnd_th2_birth = np.random.rand()            
+            #search for a dead cell to transform             
+            new_th2_prec_cell = make_cells(1, nsteps, nstates)
+            new_th2_prec_cell[:,i+1, t_last_change] = t
+            new_th2_prec_cell[:,i+1, cell_state] = th2_prec_cell
+            cells = np.concatenate((cells, new_th2_prec_cell)) 
+
             
-        new_cells = make_cells(counter, nsteps, nstates)
+        new_cells = make_cells(counter_th1, nsteps, nstates)
         new_cells[:,i+1, t_last_change] = t
         new_cells[:,i+1, cell_state] = th1_cell
         cells = np.concatenate((cells, new_cells))        
+
+        new_cells = make_cells(counter_th2, nsteps, nstates)
+        new_cells[:,i+1, t_last_change] = t
+        new_cells[:,i+1, cell_state] = th2_cell
+        cells = np.concatenate((cells, new_cells))
         
     return [cells, time]     
 
@@ -234,18 +335,20 @@ def get_cells(cells, time):
     """
     all_cells = cells[:,:, 0]
           
-    th0_cells = np.sum(all_cells == 0, axis = 0)
+    th1_prec_cells = np.sum(all_cells == 0, axis = 0)
     th1_cells = np.sum(all_cells == 1, axis = 0)
-    dead_cells = np.sum(all_cells == 2, axis = 0)
+    th2_prec_cells = np.sum(all_cells == 2, axis = 0)
+    th2_cells = np.sum(all_cells == 3, axis = 0)    
+    dead_cells = np.sum(all_cells == 4, axis = 0)
    
-    return th0_cells, th1_cells, dead_cells
+    return th1_prec_cells, th1_cells, th2_prec_cells, th2_cells, dead_cells
 
 # =============================================================================
 # run stochastic simulation
 # =============================================================================
 
 simulation = [stoc_simulation(*stoc_params) for i in range(nsim)]
-thn_th1_cells = [get_cells(*simu)[:2] for simu in simulation]
+thn_th1_cells = [get_cells(*simu)[:-1] for simu in simulation]
 #==============================================================================
 # 
 #==============================================================================
@@ -261,8 +364,8 @@ def th_cell_diff(state, t, alpha_1, alpha_2, beta_1, beta_2, alpha_prolif, beta_
     dt_th_states = [dt_th1, dt_th2]
     rate = [beta_1, beta_2]
     
-    p_1 = 1.0
-    p_2 = 0
+    p_1 = 0.8
+    p_2 = 0.2
     
     cell_flux = [p_1 * rate_birth, p_2 * rate_birth]
     
@@ -281,10 +384,10 @@ def th_cell_diff(state, t, alpha_1, alpha_2, beta_1, beta_2, alpha_prolif, beta_
     # calculate derivatives
         for j in range(len(th_state)):
             if j == 0:
-                dt_state[j] = flux - r * th_state[j]
+                dt_state[j] = flux - (r + rate_death) * th_state[j]
                 
             elif j < alpha:
-                dt_state[j] = r * (th_state[j-1] - th_state[j])
+                dt_state[j] = r * (th_state[j-1] - th_state[j]) - rate_death * th_state[j]
                 
             elif j == alpha:
                 dt_state[j] = 2 * (r * th_state[j-1] + beta_prolif * th_state[-1]) - (rate_death + beta_prolif) * th_state[j]
@@ -321,7 +424,7 @@ def run_model(simulation_time,
     
     initial_cells = 1
     ini_cond[0] = initial_cells
-    ini_cond[alpha_1+alpha_prolif] = 0
+    ini_cond[alpha_1+alpha_prolif] = initial_cells
 
     
     state = odeint(th_cell_diff, 
@@ -357,7 +460,7 @@ ax.plot(simulation_time, th2_all_cells)
 # =============================================================================
 
 # make dummy labels for pandas df
-label = ["Thn","Th1"]
+label = ["Th1 pre","Th1", "Th2 pre","Th2"]
 labels = [label for _ in range(nsim)]
 flat_labels = [item for sublist in labels for item in sublist]
 
@@ -369,18 +472,26 @@ df.columns = flat_labels
 df["time"] = simulation_time
 df_long = df.melt(id_vars = ["time"])
 
+df_diff = df_long.loc[(df_long["variable"] == "Th1") | (df_long["variable"] == "Th2")]
+
+palette = ["tab:blue", "tab:orange"]
+
 fig, ax = plt.subplots(1, 1, figsize =(5,4))
 stoc_plot = sns.lineplot(x = "time", 
                          y = "value", 
-                         data = df_long,
+                         data = df_diff,
                          hue = "variable",
                          ci = "sd",
                          ax = ax,
+                         palette = palette,
                          legend = False)
 ax.set_ylabel("$n_{cells}$")
 ax.set_xlim(0, simulation_time[-1])
 
-ax.plot(simulation_time, th1_all_cells, c = "tab:orange", linestyle = "--")
+ax.plot(simulation_time, th1_all_cells, c = "tab:blue", linestyle = "--")
+ax.plot(simulation_time, th2_all_cells, c = "tab:orange", linestyle = "--")
+ax.legend(["Th1 stoc", "Th2 stoc", "Th1 det", "Th2 det"])
 #ax.legend(label)
 #ax.set_title(r"$\rightarrow$ Thn $\rightarrow$ Th diff $\rightarrow$ $\emptyset$")
 plt.tight_layout()
+fig.savefig("th1_th2_prolif.pdf", bbox_inches = "tight")
