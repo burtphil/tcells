@@ -28,20 +28,19 @@ def prolif2(state, t, diff_rate, birth_rate, death_rate):
     
     return dt_state
 
-stage_no = 10
+stage_no = 1
 y0 = np.zeros(stage_no)
 y0[0] = 1
-diff_rate = 10.
+diff_rate = 0.1
 birth_rate = 0
 death_rate = 0
 
-sim_time = np.arange(0, 5, 0.01)
+sim_time = np.arange(0, 30, 0.01)
 state = odeint(prolif, y0, sim_time, args = (diff_rate, birth_rate, death_rate))
 
 all_cells = np.sum(state, axis = 1)
 
-fig, ax = plt.subplots()
-plt.plot(sim_time,state)
-
-fig, ax = plt.subplots()
-plt.plot(sim_time,all_cells)
+fig, ax = plt.subplots(1, 2, figsize = (8, 4))
+ax[0].plot(sim_time,all_cells)
+ax[1].plot(sim_time,state)
+plt.tight_layout()

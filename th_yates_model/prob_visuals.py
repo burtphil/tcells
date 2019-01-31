@@ -29,7 +29,7 @@ def feedback(x, fb, hill, K):
 
 cells = np.arange(0,5, 0.01)
 
-prob = feedback(cells, 10, 2., 1.)
+prob = feedback(cells, fb = 10, hill = 2., K = 1.)
 prob = prob / (1 + prob)
 
 plt.plot(cells, prob)

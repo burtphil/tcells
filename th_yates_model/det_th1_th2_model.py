@@ -58,22 +58,22 @@ def th_cell_diff(state,
                  K_th2,
                  conc_il12,
                  ):
-    
+
     # calculate cytokine concentrations
     th1 = state[:(alpha_1+alpha_prolif)]
     th2 = state[(alpha_1+alpha_prolif):]
     
     th1_cells = np.sum(th1)
     th2_cells = np.sum(th2)
-    
+
     conc_ifn = rate_cytos[0] * th1_cells
     conc_il4 = rate_cytos[1] * th2_cells    
     cytokines = [conc_ifn, conc_il4, conc_il12]
-
+    
     # branching probablities
     prob_th1 = cytokine_prob(cytokines, fb_th1, hill_th1, K_th1)
     prob_th2 = cytokine_prob(cytokines, fb_th2, hill_th2, K_th1)
-    
+
     assert prob_th1 > 0, "prob th1="+str(prob_th1)+" prob th2="+str(prob_th2)+" cannot normalize."
     assert prob_th2 > 0
     
