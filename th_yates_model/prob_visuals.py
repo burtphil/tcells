@@ -27,9 +27,20 @@ def feedback(x, fb, hill, K):
     
     return dummy
 
+def gamma(x, fb, hill, K):
+    dummy = (x * fb + K) / (x + K)
+    return dummy
+
 cells = np.arange(0,5, 0.01)
 
 prob = feedback(cells, fb = 10, hill = 2., K = 1.)
 prob = prob / (1 + prob)
 
-plt.plot(cells, prob)
+#fig, ax = plt.subplots()
+#ax.plot(cells, prob)
+
+prob = gamma(cells, fb = 0.1, hill = 2., K = 1.)
+prob = prob / (1 + prob)
+
+fig, ax = plt.subplots()
+ax.plot(cells, prob)

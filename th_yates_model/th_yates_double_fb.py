@@ -341,7 +341,6 @@ ax[0].plot(param_arr, rtm_arr[1], c = "tab:red", linestyle = "--")
 ax[1].plot(param_arr, rtm_arr[2], c = "tab:blue")
 ax[1].plot(param_arr, rtm_arr[3], c = "tab:red", linestyle = "--")
 
-
 ax[0].set_xlabel("death rate d")
 ax[0].set_ylabel(r"% Th1 cells after "+str(round(time[-1],1))+ " hrs")
 ax[1].set_xlabel("death rate d")
